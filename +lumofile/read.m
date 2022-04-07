@@ -264,6 +264,15 @@ catch e
   rethrow(e)
 end
 
+% We need to get the (required) file name field here, in order to deal with a version number
+% ambiguity whereby 0.2.0 files can report as 0.1.0.
+lf_meta_fns = reqfield(metadata, 'file_names');
+if all(lf_ver_num == [0 1 1])
+  if isfield(lf_meta_fns, 'hardware_file')
+    lf_ver_num = [0 2 0];
+  end
+end
+
 if ~ismember(lf_known_ver, lf_ver_num, 'rows')
   error('LUMO file (%s): version %d.%d.%d is not supported by this software version\n', ...
     lf_dir, lf_ver_num(1), lf_ver_num(2), lf_ver_num(3));
@@ -275,17 +284,22 @@ end
 % 2c. Get filenames of additional metadata and check existence
 %
 
-% Get file names
-lf_meta_fns = reqfield(metadata, 'file_names');
-lf_meta_hw_fn = reqfield(lf_meta_fns, 'hardware_file');
+% Look for the file which enuemrates the system
+if (lf_ver_num(1) < 1) && (lf_ver_num(2) < 2)
+  lf_meta_hw_fn = reqfield(lf_meta_fns, 'layout_file');  
+else
+  lf_meta_hw_fn = reqfield(lf_meta_fns, 'hardware_file');
+end
 
-if lf_ver_num(2) < 1
+% Look for the file which describes the nature of the recording
+if (lf_ver_num(1) < 1) && (lf_ver_num(2) < 1)
   % In versions <= 0.1.0 the 'recording data' file was known as the 'sd' file.
   lf_meta_hw_fn = reqfield(lf_meta_fns, 'sd_file');
 else
   lf_meta_rd_fn = reqfield(lf_meta_fns, 'recordingdata_file');
 end
 
+% Look for log files
 lf_meta_lg_fn = optfield(lf_meta_fns, 'log_file');
 if isempty(lf_meta_lg_fn)
   fprintf('LUMO file %s does not contain log information\n', lf_dir);
@@ -294,14 +308,34 @@ else
   lf_has_log = true;
 end
 
-lf_meta_lo_fn = optfield(lf_meta_fns, 'layout_file');
-if isempty(lf_meta_lo_fn)
-  fprintf('LUMO file %s does not contain cap layout information\n', lf_dir);
-  lf_has_layout = false;
-else
-  lf_has_layout = true;
-end
+% Look for a cap layout file
+if (lf_ver_num(1) < 1) && (lf_ver_num(2) > 1)
 
+  % On file versions >= 0.2.0 the layout file will be specified, or missing
+  lf_meta_lo_fn = optfield(lf_meta_fns, 'layout_file');
+  if isempty(lf_meta_lo_fn)
+    fprintf('LUMO file %s does not contain cap layout information\n', lf_dir);
+    lf_has_layout = false;
+  else
+    lf_has_layout = true;
+  end
+  
+else
+  
+  % On file versions < 0.2.0 the layout file field is reserved for use by the enumeration
+  % but we might still seek a layout by file name
+  lf_meta_lo_fn = fullfile(lf_dir, 'layout.json');
+  if exist(lf_meta_lo_fn, 'file') ~= 2  
+    fprintf('LUMO file %s does not contain cap layout information\n', lf_dir);
+    lf_has_layout = false;
+    lf_meta_lo_fn = [];
+  else
+    lf_has_layout = true;
+  end
+  
+end
+  
+% Look for option event file
 lf_meta_ev_fn = optfield(lf_meta_fns, 'event_file');
 if isempty(lf_meta_ev_fn)
   fprintf('LUMO file %s does not contain event information\n', lf_dir);
@@ -327,7 +361,12 @@ end
 
 if lf_has_layout
   if exist(fullfile(lf_dir, lf_meta_lo_fn), 'file') ~= 2
-    error('LUMO file (%s) invalid: layout file %s not found', lf_dir, lf_meta_lo_fn);
+    % Some layout files are saved with uppercase extension, which matters on some platforms
+    [~, flname, flext] = fileparts(lf_meta_lo_fn);
+    lf_meta_lo_fn = [flname upper(flext)];
+    if exist(fullfile(lf_dir, lf_meta_lo_fn), 'file') ~= 2
+      error('LUMO file (%s) invalid: layout file %s not found', lf_dir, lf_meta_lo_fn);
+    end
   end
 end
 
@@ -514,13 +553,15 @@ try
   lf_lo_group_uid = layout_raw.group_uid;
   lf_lo_dims_2d = layout_raw.dimensions.dimensions_2d;
   lf_lo_dims_3d = layout_raw.dimensions.dimensions_3d;
-  lf_lo_landmarks = reqfieldci(layout_raw, 'landmarks'); % Case varies, accept either
-    
-  assert(isfield(lf_lo_landmarks, 'name'));
-  assert(isfield(lf_lo_landmarks, 'x'));
-  assert(isfield(lf_lo_landmarks, 'y'));
-  assert(isfield(lf_lo_landmarks, 'z'));
+  lf_lo_landmarks = optfieldci(layout_raw, 'landmarks'); % Case varies, accept either
   
+  if ~isempty(lf_lo_landmarks)
+    assert(isfield(lf_lo_landmarks, 'name'));
+    assert(isfield(lf_lo_landmarks, 'x'));
+    assert(isfield(lf_lo_landmarks, 'y'));
+    assert(isfield(lf_lo_landmarks, 'z'));
+  end    
+
   % Over each dock (first pass for sorting)
   nd = length(layout_raw.docks);
   dockidsort = zeros(nd, 1);
@@ -549,7 +590,7 @@ try
   
 catch e
   fprintf('LUMO file (%s): error parsing layout structure from file %s\n', ...
-    lf_dir, lf_desc.ev_fn);
+    lf_dir, lf_desc.lo_fn);
   rethrow(e);
 end
 
@@ -1051,7 +1092,7 @@ end
 
 end
 
-% req
+% reqfieldci
 %
 % Get a required field from a structure, case insensitive on the field name, ithrowing an
 % appropriate error if unavailable.
@@ -1086,5 +1127,24 @@ else
   fieldval = [];
 end
 
+end
+
+
+% optfieldci
+%
+% Get an optional field from a structure, case insensitive on the field name, throwing an
+% appropriate error if unavailable.
+%
+function fieldval = optfieldci(s, name, lumodir_fn)
+    
+    names   = fieldnames(s);
+    isField = strcmpi(name,names);  
+
+    if any(isField)
+      fieldval = s.(names{isField});
+    else
+      fieldval = [];
+    end
+        
 end
 
