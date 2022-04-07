@@ -12,6 +12,18 @@ function [enum, data, events] = read(lf_dir, varargin)
 %                           
 %   Optional Parameters:
 %
+%   'layout':         When a layout is specified, the embedded layout in the specified LUMO
+%                     file, if present, is ignored, and the alternative specification
+%                     applied. An alternative layout can be specified as either:
+%
+%                       string: the filename of a valid lumo layout file, in JSON format
+%                       struct: a layout structure in the format returned by
+%                               lumofile.read_layout (see function help for details)
+%
+%                     If the provided layout has been constructed by the user, for example
+%                     based upon measurements of a physical layout, entries must be present
+%                     for each occupied dock in the recording with the apprporiate dock ID.
+%
 %   'ignore_memory':  A logical value which indicates if the function should ignore any
 %                     potential performance issues arising from loading large amounts of
 %                     data. Defaults to false.
@@ -39,7 +51,7 @@ function [enum, data, events] = read(lf_dir, varargin)
 %
 %   This informaiton is exposed in the retuned enumeration:
 % 
-%   >> ch = enum.groups(1).channels(98)
+%   >> ch = enum.groups(gi).channels(98)
 % 
 %   ch = 
 % 
@@ -53,7 +65,7 @@ function [enum, data, events] = read(lf_dir, varargin)
 %   One may inspect the nature of the sources or detectors with reference to the node to 
 %   which it belongs, e.g., the wavelength of a source index 2 on node index 1:
 %
-%   nodes = enum.groups(1).nodes;
+%   nodes = enum.groups(gi).nodes;
 %   wl = nodes(ch.src_node_idx).srcs(ch.src_idx).wl
 % 
 %   wl =
@@ -68,13 +80,14 @@ function [enum, data, events] = read(lf_dir, varargin)
 %
 %   6
 %
-%   And the actual physical location of an optode is determined by an associated template
-%   layout file. The docks of a layout are linked to enumeration by the node ID:
+%   And the actual physical location of an optode is determined by an associated layout
+%   structure. The docks of a layout are linked to enumeration by the node ID. For
+%   convenience, the layout structure contains a map from the ID to the index:
 %
-%   layout = enum.groups(1).layout;
+%   layout = enum.groups(gi).layout;
 %   node_id = nodes(ch.src_node_idx).id;
 % 
-%   >> optode = layout.docks(node_id).optodes(optode_idx)
+%   >> optode = layout.docks(layout.dockmap(node_id)).optodes(optode_idx)
 % 
 %   optode = 
 % 
@@ -110,25 +123,6 @@ function [enum, data, events] = read(lf_dir, varargin)
 %   (C) Gowerlabs Ltd., 2022
 %
 
-%%% TEST LIST
-%
-% - Lumo file not found
-% - No metadata in the file
-% - Missing intensity files (referenced)
-% - No intensity files
-% - Garbage metadata file
-% - Garbage hardware file
-% - Garbange events
-% - Garbage raw data, incl.
-%   - version mismatch
-%   - endienness mismatch
-%   - mismatch between reported size
-%
-% - Checks on enumeration mapping
-% - Checks on data location mapping
-% - Parse checks on v0.0.1, v0.1.0, v0.2.0, v0.3.0, v0.4.0
-%
-
 %%% TODOS
 %
 % - Form a node permuation vector which maps from node indices to reduced
@@ -139,8 +133,7 @@ function [enum, data, events] = read(lf_dir, varargin)
 % - Provide dialogue box when file is not specified on the command line
 % - Check that the file is actually a .lumo by parsing the name
 % - Expose global mapping
-% - Consider reduiced mappings
-% - Change the dock id to a string name.
+% - Consider reduced layout mappings
 % - Optode filtering, and skip data option to allow inspection without inflection
 %
 
@@ -150,9 +143,14 @@ ts_load = tic;
 % Parse inputs
 p = inputParser;
 addOptional(p, 'ignore_memory', false, @islogical);
+addOptional(p, 'layout', []);
 parse(p, varargin{:});
 
 ignore_memory = p.Results.ignore_memory;
+layout_override = p.Results.layout;
+
+% Fix the group for LUMO files
+gi = 1;
 
 % Load the file description
 lf_desc = load_lumo_desc(lf_dir);
@@ -172,17 +170,55 @@ else
   events = [];
 end
 
-% Load layout
-if lf_desc.has_layout
-  enum.groups(1).layout = load_lumo_layout(lf_dir, lf_desc);
+% Load layout or take from the user
+if isempty(layout_override)
+  
+  % The user has nor provided a layout, we must use the embedded data if it exists
+  if lf_desc.has_layout
+    
+    try
+      enum.groups(gi).layout = lumofile.read_layout(fullfile(lf_dir, lf_desc.lo_fn));
+    catch e
+       fprintf('LUMO file (%s) invalid: error parsing layout file %s\n', lf_dir, lf_desc.lo_fn);
+       rethrow(e)
+    end
+    
+  else
+    enum.groups(gi).layout = [];
+    warning([...
+      'The sepcified LUMO file does not contain an embedded layout file, and no layout '...
+      'has been specified when calling this function. The returned enumeration will '...
+      'lack layout information, and it will not be possible to convert this file to '...
+      'formats which require a layout. Specify an appropriate layout file to supress '... 
+      'this warning, or copy an appropriate layout to the .LUMO folder in order for it '...
+      'to be used as an automatic fallback.']);
+  end
+  
 else
-  enum.groups(1).layout = [];
-  warning([...
-    'The sepcified LUMO file does not contain an embedded template layout file. The ' ...
-    'returned enumeration will therefore lack layout information, and it will not be '...
-    'possible to convert this file to formats which require a layout. An appropriate '...
-    'layout file can be permanently merged into the LUMO file using the '...
-    'lumofile.merge_layout function']);
+  
+  % The user has supplied a layout file
+  if ischar(layout_override)
+    
+    try
+      enum.groups(gi).layout = lumofile.read_layout(layout_override);
+      fprintf('LUMO file (%s) using user-specified layout file\n', lf_dir);
+    catch e
+       fprintf('An error occurred loading the specified layout file %s', layout_override);
+       rethrow e
+    end
+      
+  elseif isstruct(layout_override)
+    enum.groups(gi).layout = layout_override;
+    fprintf('LUMO file (%s) using user-specified layout structure (not validated)\n', lf_dir);
+  else
+    error('The specified layout is neither a layout filename nor structure, consult help');
+  end
+  
+end
+
+if ~isempty(enum.groups(gi).layout)
+  fprintf('LUMO file (%s) assigned layout (group %d) contains %d docks, %d optodes\n', ...
+    lf_dir, gi, length(enum.groups(gi).layout.docks), length(enum.groups(gi).layout.docks)*7);
 end
 
 % Load intensity files
@@ -316,7 +352,7 @@ if (lf_ver_num(1) < 1) && (lf_ver_num(2) > 1)
   % On file versions >= 0.2.0 the layout file will be specified, or missing
   lf_meta_lo_fn = optfield(lf_meta_fns, 'layout_file');
   if isempty(lf_meta_lo_fn)
-    fprintf('LUMO file %s does not contain cap layout information\n', lf_dir);
+    fprintf('LUMO file (%s) does not contain cap layout information\n', lf_dir);
     lf_has_layout = false;
   else
     lf_has_layout = true;
@@ -543,77 +579,6 @@ fprintf('LUMO file (%s) events file contains %d entries\n', lf_dir, length(event
 end
 
 
-% lumo_load_layout
-%
-% Construct template layout from provided LUMO file.
-function [layout] = load_lumo_layout(lf_dir, lf_desc)
-
-% 1. Load and parse the event data
-%
-try
-  layout_raw = jsondecode(fileread(fullfile(lf_dir, lf_desc.lo_fn)));
-catch e
-  fprintf('LUMO file (%s) invalid: error parsing layout file %s', lf_dir, lf_desc.lo_fn);
-  rethrow(e);
-end
-
-% Get the variables
-try
-  lf_lo_group_uid = layout_raw.group_uid;
-  lf_lo_dims_2d = layout_raw.dimensions.dimensions_2d;
-  lf_lo_dims_3d = layout_raw.dimensions.dimensions_3d;
-  lf_lo_landmarks = optfieldci(layout_raw, 'landmarks'); % Case varies, accept either
-  
-  if ~isempty(lf_lo_landmarks)
-    assert(isfield(lf_lo_landmarks, 'name'));
-    assert(isfield(lf_lo_landmarks, 'x'));
-    assert(isfield(lf_lo_landmarks, 'y'));
-    assert(isfield(lf_lo_landmarks, 'z'));
-  end    
-
-  % Over each dock (first pass for sorting)
-  nd = length(layout_raw.docks);
-  dockidsort = zeros(nd, 1);
-  for di = 1:nd
-    docknum = strsplit(layout_raw.docks(di).dock_id, '_');
-    dockidsort(di) = str2num(docknum{2});
-  end
-  [~, dock_perm] = sort(dockidsort);
-  
-  % Over each node(second pass for construction)
-  for dii = 1:nd
-    
-    di = dock_perm(dii);
-    
-    assert(length(layout_raw.docks(di).optodes) == 7);
-    for oi = 1:7
-      [cs_optode, opt_idx] = trans_optode_desc(layout_raw.docks(di).optodes(oi), lf_dir);
-      optperm(oi) = opt_idx;
-      optodes(oi) = cs_optode;
-    end
-    
-    optodes = optodes(optperm);
-    
-    lf_lo_docks(dii) = struct('id', dii, 'optodes', optodes);
-  end
-  
-catch e
-  fprintf('LUMO file (%s): error parsing layout structure from file %s\n', ...
-    lf_dir, lf_desc.lo_fn);
-  rethrow(e);
-end
-
-
-layout = struct('uid', lf_lo_group_uid, ...
-  'dims_2d', lf_lo_dims_2d, ...
-  'dims_3d', lf_lo_dims_3d, ...
-  'landmarks', lf_lo_landmarks, ...
-  'docks', lf_lo_docks);
-
-fprintf('LUMO file (%s) layout (group %d) contains %d docks, %d optodes\n', ...
-  lf_dir, lf_lo_group_uid, length(lf_lo_docks), length(lf_lo_docks)*7);
-
-end
 
 
 % load_lumo_enum
@@ -836,7 +801,7 @@ try
   assert(lf_ndet == size(det_g2l, 1));
   
   for ni = 1:length(enum.groups(gi).nodes)
-    assert(unique(all(lf_wls == sort(unique([enum.groups(1).nodes(1).srcs.wl])))));
+    assert(unique(all(lf_wls == sort(unique([enum.groups(gi).nodes(1).srcs.wl])))));
   end
   
   % This assert is required to ensure the global to local indexing is valid
@@ -1077,49 +1042,6 @@ cs_det = struct('optode_idx', det_optode_idx);
 end
 
 
-% trans_optode_desc
-%
-% Translate the .lumo template layout format into the canonical format.
-function [cs_optode, opt_idx] = trans_optode_desc(lf_optode, lf_dir)
-
-switch lf_optode.optode_id
-  case 'optode_1'
-    opt_idx = 1;
-    opt_name = '1';
-  case 'optode_2'
-    opt_idx = 2;
-    opt_name = '2';
-  case 'optode_3'
-    opt_idx = 3;
-    opt_name = '3';
-  case 'optode_4'
-    opt_idx = 4;
-    opt_name = '4';
-  case 'optode_a'
-    opt_idx = 5;
-    opt_name = 'A';
-  case 'optode_b'
-    opt_idx = 6;
-    opt_name = 'B';
-  case 'optode_c'
-    opt_idx = 7;
-    opt_name = 'C';
-  otherwise
-    error('LUMO file (%s): error parsing optode structure (optode id %s)', ...
-      lf_dir, lf_optode.optode_id);
-end
-
-coord_2d = lf_optode.coordinates_2d;
-coord_3d = lf_optode.coordinates_3d;
-
-cs_optode = struct(...
-  'name', opt_name, ...
-  'coord_2d', coord_2d,...
-  'coord_3d', coord_3d);
-
-end
-
-
 % reqfield
 %
 % Get a required field from a structure, throwing an appropriate error if unavailable.
@@ -1133,6 +1055,7 @@ else
 end
 
 end
+
 
 % reqfieldci
 %
@@ -1156,7 +1079,6 @@ function fieldval = reqfieldci(s, name, lumodir_fn)
     
 end
 
-
 % optfield
 %
 % Attempt to get an optional field from a structure, returning an empty array if unavailable.
@@ -1171,24 +1093,6 @@ end
 
 end
 
-
-% optfieldci
-%
-% Get an optional field from a structure, case insensitive on the field name, throwing an
-% appropriate error if unavailable.
-%
-function fieldval = optfieldci(s, name, lumodir_fn)
-    
-    names   = fieldnames(s);
-    isField = strcmpi(name,names);  
-
-    if any(isField)
-      fieldval = s.(names{isField});
-    else
-      fieldval = [];
-    end
-        
-end
 
 % toml_fixup_hardware
 %

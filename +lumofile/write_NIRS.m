@@ -3,27 +3,33 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %
 %   [nirs] = LUMOFILE.WRITE_NIRS(nirsfn, enum, data, events)
 %
-%   LUMOFILE.WRITE_NIRS constructs and writes to disc a NIRS format data structure as used by
-%   the Homer2 analysis software. The format of the NIRS structure is detailed in the Homer2
-%   user guide:
+%   LUMOFILE.WRITE_NIRS constructs and writes to disc a NIRS format data structure as used 
+%   by the Homer2 analysis software. The format of the NIRS structure is detailed in the
+%   Homer2 user guide:
 %
 %   https://www.nmr.mgh.harvard.edu/martinos/software/homer/HOMER2_UsersGuide_121129.pdf
 %
+%   Note: there is some ambiguity as to the form of the SD structure generated as part of
+%   the NIRS format. This function provides different options for this structure.
+%
 %   Paramters:
 %
-%     nirsfn:               The file name of the output NIRS file
-%     enum, data, events:   Data structures returned by LUMO_READ
+%     nirsfn:               The file name of the output NIRS file, if empty, the dta is only
+%                           returned and not written to disc.
+%
+%     enum, data, events:   Data structures returned by LUMOFILE.READ
 %
 %   Optional Parameters:
 %
 %   'sdstyle':  A string describing the style of the SD field to be built:
 %
-%               'standard':  (default) construct SD output as per NIRS specification
+%               'standard':  (default) construct SD output as per NIRS specification with 3D
+%                            locations for the sources and detectors.
 %
-%               'dhtoolbox': construct the SD output in the format expected by the DOT-HUB
-%                            toolbox. This style places a flat (2D) layout in the SD
-%                            structure and includes a second SD3D field containing the
-%                            actual 3D source detector layour
+%               'flat':      construct the SD output with a flattened 2D layout of the
+%                            source/detector layout. Include a second structure called SD3D
+%                            which contains the full three dimensional layout. This format
+%                            is used by the DOT-HUB toolbox.
 %
 %   'group':    An integer specifiying the group index of the enumeration to map. Defaults to
 %               group index 1.
@@ -51,9 +57,10 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %   function, which are not present in the specification:
 %
 %   SD.SpatialUnit:   A string representing the SI units of distance
-% 
+%
 %
 % See also LUMO_READ
+%
 %
 %   (C) Gowerlabs Ltd., 2022
 %
@@ -61,21 +68,22 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %%% TODOS
 %
 % - Check with RJC regarding event data construction
-% - Add additional fields for the global enumeration (at lesat the full layout)
 %
 
 nirs = lumo_build_NIRS(enum, data, events, varargin{:});
 
-fprintf('Writing NIRS file %s... ', nirsfn);
-save(nirsfn, '-struct', 'nirs', '-v7.3');
-fprintf('complete.\n');
+if ~isempty(nirsfn)
+  fprintf('Writing NIRS file %s... ', nirsfn);
+  save(nirsfn, '-struct', 'nirs', '-v7.3');
+  fprintf('complete.\n');
+end
 
 end
 
 function [nirs] = lumo_build_NIRS(enum, data, events, varargin)
 
 p = inputParser;
-expected_styles = {'standard', 'dhtoolbox'};
+expected_styles = {'standard', 'flat', 'dhtoolbox'};
 addOptional(p, 'sdstyle', 'standard', @(x) any(validatestring(x, expected_styles)));
 addOptional(p, 'group', 1, @(x) (isnumeric(x) && x > 0));
 parse(p, varargin{:})
@@ -86,6 +94,11 @@ sdstyle = p.Results.sdstyle;
 % Check the group index is sensible
 if (gi > length(enum.groups)) || (gi > length(data))
   error('Requested group %d exceeds that available in the enumeration/data',gi)
+end
+
+% Check that a layout is available
+if isempty(enum.groups(gi).layout)
+  error('Input LUMO enumeration does not contain an embedded layout file');
 end
 
 % Time vector
@@ -108,15 +121,17 @@ SD.Lambda = glwl;
 %
 % 'standard':   SD structure constructed as per specification
 %
-% 'dhtoolbox':  SD structure built with two-dimensional flat layout, and an additional SD3D
+% 'flat':       SD structure built with two-dimensional flat layout, and an additional SD3D
 %               structure is provided with the real 3D layout (required by DOT-HUB toolbox)
 %
 SD.SrcPos = zeros(SD.nSrcs, 3);
 SD.DetPos = zeros(SD.nDets, 3);
+SD.SpatialUnit = 'mm';          % Out of spec but required by DHT
 
-if strcmp(sdstyle,'dhtoolbox')
-  SD3D = SD.SrcPos;
-  SD3D = SD.DetPos;
+if strcmp(sdstyle,'flat')
+  SD3D.SrcPos = SD.SrcPos;
+  SD3D.DetPos = SD.DetPos;
+  SD3D.SpatialUnit = 'mm';
 end
 
 layout = enum.groups(gi).layout;
@@ -127,21 +142,22 @@ for qi = 1:SD.nSrcs
   nidx = glsrc(qi).node_idx;
   oidx = glsrc(qi).optode_idx;
   nid = enum.groups(gi).nodes(nidx).id;
+  didx = layout.dockmap(nid);
   
   switch sdstyle
     case 'standard'
-      SD.SrcPos(qi, 1) = layout.docks(nid).optodes(oidx).coord_3d.x;
-      SD.SrcPos(qi, 2) = layout.docks(nid).optodes(oidx).coord_3d.y;
-      SD.SrcPos(qi, 3) = layout.docks(nid).optodes(oidx).coord_3d.z;
+      SD.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coord_3d.x;
+      SD.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coord_3d.y;
+      SD.SrcPos(qi, 3) = layout.docks(didx).optodes(oidx).coord_3d.z;
       
-    case 'dhtoolbox'
-      SD.SrcPos(qi, 1) = layout.docks(nid).optodes(oidx).coord_2d.x;
-      SD.SrcPos(qi, 2) = layout.docks(nid).optodes(oidx).coord_2d.y;
+    case 'flat'
+      SD.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coord_2d.x;
+      SD.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coord_2d.y;
       SD.SrcPos(qi, 3) = 0;
       
-      SD3D.SrcPos(qi, 1) = layout.docks(nid).optodes(oidx).coord_3d.x;
-      SD3D.SrcPos(qi, 2) = layout.docks(nid).optodes(oidx).coord_3d.y;
-      SD3D.SrcPos(qi, 3) = layout.docks(nid).optodes(oidx).coord_3d.z;
+      SD3D.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coord_3d.x;
+      SD3D.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coord_3d.y;
+      SD3D.SrcPos(qi, 3) = layout.docks(didx).optodes(oidx).coord_3d.z;
   end
   
 end
@@ -152,21 +168,22 @@ for mi = 1:SD.nDets
   nidx = gldet(mi).node_idx;
   oidx = gldet(mi).optode_idx;
   nid = enum.groups(gi).nodes(nidx).id;
+  didx = layout.dockmap(nid);
   
   switch sdstyle
     case 'standard'
-      SD.DetPos(mi, 1) = layout.docks(nid).optodes(oidx).coord_3d.x;
-      SD.DetPos(mi, 2) = layout.docks(nid).optodes(oidx).coord_3d.y;
-      SD.DetPos(mi, 3) = layout.docks(nid).optodes(oidx).coord_3d.z;
+      SD.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coord_3d.x;
+      SD.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coord_3d.y;
+      SD.DetPos(mi, 3) = layout.docks(didx).optodes(oidx).coord_3d.z;
       
-    case 'dhtoolbox'
-      SD.DetPos(mi, 1) = layout.docks(nid).optodes(oidx).coord_2d.x;
-      SD.DetPos(mi, 2) = layout.docks(nid).optodes(oidx).coord_2d.y;
+    case 'flat'
+      SD.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coord_2d.x;
+      SD.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coord_2d.y;
       SD.DetPos(mi, 3) = 0;
       
-      SD3D.DetPos(mi, 1) = layout.docks(nid).optodes(oidx).coord_3d.x;
-      SD3D.DetPos(mi, 2) = layout.docks(nid).optodes(oidx).coord_3d.y;
-      SD3D.DetPos(mi, 3) = layout.docks(nid).optodes(oidx).coord_3d.z;
+      SD3D.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coord_3d.x;
+      SD3D.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coord_3d.y;
+      SD3D.DetPos(mi, 3) = layout.docks(didx).optodes(oidx).coord_3d.z;
   end
   
 end
@@ -197,7 +214,7 @@ if ~isempty(events)
   end
   
   % Find unique events, maintain order in which they occured
-  [tmp, ~, occuranceInd] = unique(eventStr,'stable');
+  [tmp, ~, occuranceInd] = unique(eventStr, 'stable');
   
   % Extract condition names
   CondNames = arrayfun(@cellstr, tmp);
@@ -221,17 +238,8 @@ else
   
 end
 
-
-% Out of spec but required by DHT
-SD.SpatialUnit = 'mm';
-
-if strcmp(sdstyle,'dhtoolbox')
-  SD3D.SpatialUnit = 'mm';
-end
-
-
-% Sort measurement list and data by (wavelength, source, detector) and
-% apply to data, transposing to specified [nt x nc]
+% Sort measurement list and data by (wavelength, source, detector) and apply to data,
+% transposing to specified [nt x nc]
 [SD.MeasList, didx] = sortrows(SD.MeasList,[4,1,2]);
 d = data(gi).chn_dat(didx,:).';
 
@@ -246,7 +254,7 @@ nirs.ml = ml;
 nirs.s = s;
 nirs.CondNames = CondNames;
 
-if strcmp(sdstyle,'dhtoolbox')
+if strcmp(sdstyle, 'flat')
   nirs.SD3D = SD3D;
 end
 
