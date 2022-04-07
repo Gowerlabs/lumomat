@@ -178,9 +178,11 @@ if lf_desc.has_layout
 else
   enum.groups(1).layout = [];
   warning([...
-    'The sepcified LUMO file does not contain an embedded template layout file, and ' ...
-    'cannot be loaded. The appropriate layout file can be permanently merged into the ' ...
-    'LUMO file using the merge_layout function']);
+    'The sepcified LUMO file does not contain an embedded template layout file. The ' ...
+    'returned enumeration will therefore lack layout information, and it will not be '...
+    'possible to convert this file to formats which require a layout. An appropriate '...
+    'layout file can be permanently merged into the LUMO file using the '...
+    'lumofile.merge_layout function']);
 end
 
 % Load intensity files
@@ -505,29 +507,36 @@ catch e
   rethrow(e);
 end
 
-lf_events = reqfield(events_raw, 'events', lf_dir);
+% Check for an empty structure (no events)
+if isempty(fieldnames(events_raw))
+  events = [];
+else
 
-try
-  for ii = 1:length(lf_events)
-    
-    if (lf_desc.lfver(1) == 0) && (lf_desc.lfver(2) < 4)
-      % Versions prior to 0.4.0 stored the timestamp as a string (contrary to spec)
-      ts = str2double(lf_events{ii}.Timestamp);
-    else
-      ts = lf_events{ii}.Timestamp;
+  lf_events = reqfield(events_raw, 'events', lf_dir);
+
+  try
+    for ii = 1:length(lf_events)
+
+      if (lf_desc.lfver(1) == 0) && (lf_desc.lfver(2) < 4)
+        % Versions prior to 0.4.0 stored the timestamp as a string (contrary to spec)
+        ts = str2double(lf_events{ii}.Timestamp);
+      else
+        ts = lf_events{ii}.Timestamp;
+      end
+
+      events(ii) = struct('mark', lf_events{ii}.name, 'ts', ts);
+
     end
-    
-    events(ii) = struct('mark', lf_events{ii}.name, 'ts', ts);
-    
+  catch e
+    fprintf('LUMO file (%s): error parsing events structure from file %s', lf_dir, lf_desc.ev_fn);
+    rethrow(e);
   end
-catch e
-  fprintf('LUMO file (%s): error parsing events structure from file %s', lf_dir, lf_desc.ev_fn);
-  rethrow(e);
-end
+  
+  % Sort by timestamp
+  [~, perm] = sort([events.ts]);
+  events = events(perm);
 
-% Sort by timestamp
-[~, perm] = sort([events.ts]);
-events = events(perm);
+end
 
 fprintf('LUMO file (%s) events file contains %d entries\n', lf_dir, length(events));
 
