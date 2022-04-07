@@ -629,7 +629,7 @@ try
   if (lf_desc.lfver(1) < 0) && (lf_desc.lfver(2) < 4)
     enum_raw = toml.read(fullfile(lf_dir, lf_desc.hw_fn));
   else
-    enum_raw = toml_read_fixup(fullfile(lf_dir, lf_desc.hw_fn));
+    enum_raw = toml_read_fixup_hw(fullfile(lf_dir, lf_desc.hw_fn));
   end
 catch e
   fprintf('LUMO file (%s) invalid: error parsing (fixed) hardware file %s', lf_dir, lf_desc.hw_fn);
@@ -812,7 +812,7 @@ try
   if (lf_desc.lfver(1) < 1) && (lf_desc.lfver(2) < 4)
     rcdata = toml.read(fullfile(lf_dir, lf_desc.rd_fn));
   else
-     rcdata = toml_read_fixup_rc(fullfile(lf_dir, lf_desc.rd_fn));
+    rcdata = toml_read_fixup_rc(fullfile(lf_dir, lf_desc.rd_fn));
   end
 catch e   
     fprintf('LUMO file (%s): error parsing recording data file %s', lf_dir, lf_desc.rd_fn);
@@ -1194,7 +1194,7 @@ end
 %
 % Modify whitespace in toml file to ensure compatibility with matlab-toml parser.
 %
-function toml_data = toml_read_fixup(fn)
+function toml_data = toml_read_fixup_hw(fn)
 
 raw_text = fileread(fn);
 fixed_raw_text = regexprep(raw_text,'[\n\r]+[\t ]+','\n');
@@ -1227,6 +1227,7 @@ raw_text = regexprep(raw_text,'(\d+) +([^=])','$1$2');
 raw_text = regexprep(raw_text,',(.)',', $1');
 
 toml_data = toml.decode(raw_text);
+
 end
 
 
