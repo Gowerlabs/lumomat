@@ -626,10 +626,14 @@ function [enum, dataparams] = load_lumo_enum(lf_dir, lf_desc)
 % 1. Load and parse the enumeration data
 %
 try
-  enum_raw = toml.read(fullfile(lf_dir, lf_desc.hw_fn));
+  if (lf_desc.lfver(1) < 0) && (lf_desc.lfver(2) < 4)
+    enum_raw = toml.read(fullfile(lf_dir, lf_desc.hw_fn));
+  else
+    enum_raw = toml_read_fixup(fullfile(lf_dir, lf_desc.hw_fn));
+  end
 catch e
-  fprintf('LUMO file (%s) invalid: error parsing hardware file %s', lf_dir, lf_desc.hw_fn);
-  rethrow(e);
+  fprintf('LUMO file (%s) invalid: error parsing (fixed) hardware file %s', lf_dir, lf_desc.hw_fn);
+  rethrow(e);  
 end
 
 % 2. Canonicalise the enumeration
@@ -645,28 +649,33 @@ try
   %%%       Aim here is to match up the enumeration with the way the library stores its 
   %%%       metadta internally, with a view to linking
   %%%       up with existing work on loadlufr, etc.
-  temp = enum_raw.Hub.firmware_version;
-  if temp ~= ""
-    enum.hub.fw_ver = temp;
+  if isfield(enum_raw.Hub, 'firmware_version')
+    temp = enum_raw.Hub.firmware_version;
+    if temp ~= ""
+      enum.hub.fw_ver = temp;
+    end
+  else
+    enum.hub.fw_ver = [];
   end
-  
-  temp = enum_raw.Hub.hardware_version;
-  if temp ~= ""
-    enum.hub.type = temp;
-  end
-  
-  temp = enum_raw.Hub.hub_serial_number;
-  if temp ~= -1
-    enum.hub.sn = temp;
-  end
-  
-  temp = enum_raw.Hub.hardware_uid;
-  if temp ~= ""
     
-    %%% TODO: Parse this array properly into some integers
-    %%%
-    enum.hub.uid = temp;
+  if isfield(enum_raw.Hub, 'hardware_version')
+    temp = enum_raw.Hub.hardware_version;
+    if temp ~= ""
+      enum.hub.type = temp;
+    end
+  else
+    enum.hub.type = [];
   end
+  
+  if isfield(enum_raw.Hub, 'hub_serial_number')
+    temp = enum_raw.Hub.hub_serial_number;
+    if temp ~= -1
+      enum.hub.sn = temp;
+    end
+  else
+    enum.hub.sn = [];
+  end
+    
   
 catch e
   fprintf('LUMO file (%s): an exception ocurred parsing the hub enumeration\n', lf_dir);
@@ -713,7 +722,6 @@ try
       
       cs_node = struct(...
         'id',       enum_raw.Hub.Group(gi).Node{ni}.node_id, ...
-        'uid',      enum_raw.Hub.Group(gi).Node{ni}.tile_uid, ...
         'revision', enum_raw.Hub.Group(gi).Node{ni}.revision_id, ...
         'fwver',    enum_raw.Hub.Group(gi).Node{ni}.firmware_version);
       
@@ -731,7 +739,8 @@ try
       % Build the source list in the internal indexing layout, which differs from the
       % ordering used in the LUMO global-spectroscopic format.
       for qi = 1:length(lf_srcs)
-        [cs_srcs_temp, src_idx, src_gi, src_gw, src_pwr] = trans_src_desc(lf_srcs(qi));
+        [cs_srcs_temp, src_idx, src_gi, src_gw, src_pwr] ...
+          = trans_src_desc(lf_srcs(qi), lf_desc.lfver, lf_dir);
         cs_srcs(src_idx) = cs_srcs_temp;
         
         %%% TODO: For robustness this needs to be set up before
@@ -753,7 +762,8 @@ try
       end
       
       for mi = 1:length(lf_dets)
-        [cs_dets_temp, det_idx, det_gi] = trans_det_desc(lf_dets(mi));
+        [cs_dets_temp, det_idx, det_gi] ...
+          = trans_det_desc(lf_dets(mi), lf_desc.lfver, lf_dir);
         cs_dets(det_idx) = cs_dets_temp;
         det_g2l(det_gi,:) = [nii det_idx];
       end
@@ -799,10 +809,14 @@ end
 % node local representation. We must thus map back from the global -> local mapping.
 %
 try
-  rcdata = toml.read(fullfile(lf_dir, lf_desc.rd_fn));
-catch e
-  fprintf('LUMO file (%s): error parsing recording data file %s', lf_dir, lf_desc.rd_fn);
-  rethrow(e);
+  if (lf_desc.lfver(1) < 1) && (lf_desc.lfver(2) < 4)
+    rcdata = toml.read(fullfile(lf_dir, lf_desc.rd_fn));
+  else
+     rcdata = toml_read_fixup_rc(fullfile(lf_dir, lf_desc.rd_fn));
+  end
+catch e   
+    fprintf('LUMO file (%s): error parsing recording data file %s', lf_dir, lf_desc.rd_fn);
+    rethrow(e);
 end
 
 % Note that from here on in we are certainly using group index 0 (1) as there is presently
@@ -958,45 +972,52 @@ end
 %   - The wavelength indexing (src_gwi) is hard coded, it must be asserted
 %     that the ordering (1 -> 735, 2 -> 850) is valid.
 %
-function [cs_src, src_idx, src_gsi, src_gwi, src_pwr] = trans_src_desc(lf_src, lf_dir)
+function [cs_src, src_idx, src_gsi, src_gwi, src_pwr] = trans_src_desc(lf_src, lf_ver, lf_dir)
 
-switch lf_src.id
-  case 1
+% ID depends upon metadata version
+if (lf_ver(1) < 1) && (lf_ver(2) < 4)
+  idset = [1 2 4 8 16 32];
+else
+  idset = [1 1 5 5 3 3];
+end
+  
+switch lf_src.description
+  case 'SRCA_735nm'
     src_idx = 1;
     src_wl = 735;
     src_gwi = 1;
     src_optode_idx = 5;
-    assert(lf_src.description == "SRCA_735nm");
-  case 2
+    assert(lf_src.id == idset(1));
+  case 'SRCA_850nm'
     src_idx = 4;
     src_wl = 850;
     src_gwi = 2;
     src_optode_idx = 5;
-    assert(lf_src.description == "SRCA_850nm");
-  case 4
+    assert(lf_src.id == idset(2));
+  case 'SRCB_735nm'
     src_idx = 2;
     src_wl = 735;
     src_gwi = 1;
     src_optode_idx = 6;
-    assert(lf_src.description == "SRCB_735nm");
-  case 8
+    assert(lf_src.id == idset(3));
+  case 'SRCB_850nm'
     src_idx = 5;
     src_wl = 850;
     src_gwi = 2;
     src_optode_idx = 6;
-    assert(lf_src.description == "SRCB_850nm");
-  case 16
+    assert(lf_src.id == idset(4));
+  case 'SRCC_735nm'
     src_idx = 3;
     src_wl = 735;
     src_gwi = 1;
     src_optode_idx = 7;
-    assert(lf_src.description == "SRCC_735nm");
-  case 32
+    assert(lf_src.id == idset(5));
+  case 'SRCC_850nm'
     src_idx = 6;
     src_wl = 850;
     src_gwi = 2;
     src_optode_idx = 7;
-    assert(lf_src.description == "SRCC_850nm");
+    assert(lf_src.id == idset(6));
   otherwise
     error('LUMO file (%s): error parsing source structure (src id %d)', lf_dir, lf_src.id);
 end
@@ -1015,25 +1036,37 @@ end
 % array.
 %
 % Also outputs the global detector index.
-function [cs_det, det_idx, det_gsi] = trans_det_desc(lf_det, lf_dir)
+function [cs_det, det_idx, det_gsi] = trans_det_desc(lf_det, lf_ver, lf_dir)
 
-switch lf_det.id
-  case 0
+
+adcbase = 'ADC Detector Channel ';
+
+% ID depends upon metadata version
+if (lf_ver(1) < 1) && (lf_ver(2) < 4)
+  adcdesc = {[adcbase '0'], [adcbase '1'], [adcbase '2'], [adcbase '3']};
+  idset = [0 1 2 3];
+else
+  adcdesc = {[adcbase '1'], [adcbase '2'], [adcbase '3'], [adcbase '4']};
+  idset = [4 6 0 2];
+end
+
+switch lf_det.description
+  case adcdesc(1)
     det_idx = 1;
     det_optode_idx = 1;
-    assert(lf_det.description == "ADC Detector Channel 0");
-  case 1
+    assert(lf_det.id == idset(1));
+  case adcdesc(2)
     det_idx = 2;
     det_optode_idx = 2;
-    assert(lf_det.description == "ADC Detector Channel 1");
-  case 2
+    assert(lf_det.id == idset(2));
+  case adcdesc(3)
     det_idx = 3;
     det_optode_idx = 3;
-    assert(lf_det.description == "ADC Detector Channel 2");
-  case 3
+    assert(lf_det.id == idset(3));
+  case adcdesc(4)
     det_idx = 4;
     det_optode_idx = 4;
-    assert(lf_det.description == "ADC Detector Channel 3");
+    assert(lf_det.id == idset(4));
   otherwise
     error('LUMO file (%s): error parsing detector structure (det id %d)', lf_dir, lf_det.id);
 end
@@ -1156,4 +1189,45 @@ function fieldval = optfieldci(s, name, lumodir_fn)
     end
         
 end
+
+% toml_fixup_hardware
+%
+% Modify whitespace in toml file to ensure compatibility with matlab-toml parser.
+%
+function toml_data = toml_read_fixup(fn)
+
+raw_text = fileread(fn);
+fixed_raw_text = regexprep(raw_text,'[\n\r]+[\t ]+','\n');
+toml_data = toml.decode(fixed_raw_text);
+
+end
+
+% toml_read_fixup_rc
+%
+% Modify whiltespace in toml file to ensure compatiblity with matlab-toml parse. This
+% function is typically applied to the recording data files.
+%
+function toml_data = toml_read_fixup_rc(fn)
+
+raw_text = fileread(fn);
+
+% Fix arrays with new lines and indentation before numbers or opening brackets.
+raw_text = regexprep(raw_text,'[\n\r]+[\t ]+([\d\[])','$1');
+
+% Fix arrays with newlines before closing bracket.
+raw_text = regexprep(raw_text,'[\n\r]+\]',']');
+
+% Removes spaces between delimiters and numeric elements of an array.
+raw_text = regexprep(raw_text,'([^=]) +(\d+)','$1$2');
+
+% Removes spaces between numeric elements of an array and delimters.
+raw_text = regexprep(raw_text,'(\d+) +([^=])','$1$2');
+
+% Adds spaces between, delimiters and the numeric element that comes after.
+raw_text = regexprep(raw_text,',(.)',', $1');
+
+toml_data = toml.decode(raw_text);
+end
+
+
 
