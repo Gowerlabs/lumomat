@@ -514,8 +514,8 @@ try
   lf_lo_group_uid = layout_raw.group_uid;
   lf_lo_dims_2d = layout_raw.dimensions.dimensions_2d;
   lf_lo_dims_3d = layout_raw.dimensions.dimensions_3d;
-  lf_lo_landmarks = layout_raw.Landmarks;
-  
+  lf_lo_landmarks = reqfieldci(layout_raw, 'landmarks'); % Case varies, accept either
+    
   assert(isfield(lf_lo_landmarks, 'name'));
   assert(isfield(lf_lo_landmarks, 'x'));
   assert(isfield(lf_lo_landmarks, 'y'));
@@ -1041,15 +1041,36 @@ end
 %
 % Get a required field from a structure, throwing an appropriate error if unavailable.
 %
-function fieldval = reqfield(basename, fieldname, lumodir_fn)
+function fieldval = reqfield(s, name, lumodir_fn)
 
-if isfield(basename, fieldname)
-  fieldval = getfield(basename, fieldname);
+if isfield(s, name)
+  fieldval = getfield(s, name);
 else
-  error('LUMO file (%s): required field %s missing from structure', ...
-    lumodir_fn, fieldname)
+  error('LUMO file (%s): required field %s missing from structure', lumodir_fn, name)
 end
 
+end
+
+% req
+%
+% Get a required field from a structure, case insensitive on the field name, ithrowing an
+% appropriate error if unavailable.
+%
+function fieldval = reqfieldci(s, name, lumodir_fn)
+    
+    names   = fieldnames(s);
+    isField = strcmpi(name,names);  
+
+    if any(isField)
+      fieldval = s.(names{isField});
+    else
+      fieldval = [];
+    end
+    
+    if isempty(fieldval)
+      error('LUMO file (%s): required field %s missing from structure', lumodir_fn, name)
+    end
+    
 end
 
 
@@ -1057,10 +1078,10 @@ end
 %
 % Attempt to get an optional field from a structure, returning an empty array if unavailable.
 %
-function fieldval = optfield(basename, fieldname)
+function fieldval = optfield(s, name)
 
-if isfield(basename, fieldname)
-  fieldval = getfield(basename, fieldname);
+if isfield(s, name)
+  fieldval = getfield(s, name);
 else
   fieldval = [];
 end
