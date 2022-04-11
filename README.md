@@ -15,6 +15,80 @@ Load a `.lumo` file:
 data = LumoData(filename)
 ```
 
+Get information about channel 342 of your data:
+
+```
+>> info = data.chn_info(342)
+
+info = 
+
+  struct with fields:
+
+                idx: 342
+        src_node_id: 2
+            src_idx: 4
+    src_optode_name: 'A'
+             src_wl: 850
+       src_coord_2d: [94.3617 75.6020]
+       src_coord_3d: [87.3064 179.5761 110.9974]
+        det_node_id: 2
+            det_idx: 2
+    det_optode_name: '2'
+       det_coord_2d: [102.0520 81.9720]
+       det_coord_3d: [79.4308 175.0386 115.1332]
+```
+
+Find all of the channel indices where the source node ID is 1, the detecot node ID is 8, and the wavelength is 850nm:
+
+```
+>> idx = data.chn_find('wavelength', 850, 'src_node_id', 1, 'det_node_id', 8).'
+
+ans =
+
+    77
+    78
+    79
+    80
+   173
+   174
+   175
+   176
+   269
+   270
+   271
+   272
+```
+
+Find the name of the source optode with the first result from our previous query:
+
+```
+>> data.chn_info(idx(1)).src_optode_name
+
+ans =
+
+    'A'
+```
+
+And the channel data for this channel
+
+```
+>> data.chn_data(idx(1)).'
+
+ans =
+
+  978×1 single column vector
+
+   1.0e-04 *
+
+    0.3666
+    0.6109
+    0.2772
+    0.4858
+    .
+    .
+    .
+```
+
 Convert a `.lumo` file to a SNIRF file:
 
 ```
@@ -28,32 +102,6 @@ data.write_SNIRF(filename);
 ```
 
 
-<!-- 
-Find the 3D location of the optode relating to the source involved in channel 342 of your data:
-
-```
-% Get the channel we want
-ch_idx = 342;
-group = enum.groups(1);
-ch = group.channels(ch_idx);
-
-% Pull out the source
-src_node = group.nodes(ch.src_node_idx);
-src = src_node.srcs(ch.src_idx);
-
-% Look up the source optode
-nid = src_node.id;
-didx = group.layout.dockmap(nid);
-src_optode = group.layout.docks(didx).optodes(src.optode_idx);
-
-ch_loc = src_optode.coords_3d;
-```
-
-Get the data for channel 342 over all time:
-
-```
-ch_datum = data.chn_dat(ch_idx, :);
-``` -->
 
 # Overview
 
@@ -65,8 +113,8 @@ This is particularly true for LUMO, owing to its modular nature. The purpose of 
 
 # Features
 
- - High-level stable object based API 'LumoData' for interacting with lumo output 
- - Low-level (unstable) functional API for custom use-cases
+ - High-level stable object based API for interacting with lumo output 
+ - Low-level functional API for custom use-cases
  - Load .lumo files into a standardised format for further analysis
  - Write data to NIRS or SNIRF format
 
@@ -90,6 +138,10 @@ Various terms are used throughout this guide and in the package itself. Many wil
 
 
 
+
+
+
+
 ## Notes
 
  - If your .lumo file does not contain a template layout file a warning will be issued and it will not be possible to write the data to different output formats. See the 'Layouts' section of this document to resolve this problem.
@@ -99,7 +151,7 @@ Various terms are used throughout this guide and in the package itself. Many wil
 !!!
 
 
-# Local and global indexing
+## Local and global indexing
 
 The canonical enumeration of a LUMO system uses local indexing. This means that channels are defined by a 4-tuple: 
 
@@ -118,9 +170,13 @@ This indexing scheme is less flexible, but it is sane because:
 
 The canonical enumeration of a LUMO system can usually be converted to global indexing, allowing the data to be exported to a number of formats.
 
-# NIRS output
+## NIRS output
 
-# SNIRF output
+Additional fields
+
+## SNIRF output
+
+Additional fields
 
 
 
