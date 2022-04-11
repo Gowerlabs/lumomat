@@ -1,9 +1,9 @@
 function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
-% LUMOFILE.WRITE_NIRS Covert LUMO data to NIRS format and write to disc
+% LUMOFILE.WRITE_NIRS Covert LUMO data to NIRS format and write to disk
 %
 %   [nirs] = LUMOFILE.WRITE_NIRS(nirsfn, enum, data, events)
 %
-%   LUMOFILE.WRITE_NIRS constructs and writes to disc a NIRS format data structure as used 
+%   LUMOFILE.WRITE_NIRS constructs and writes to disk a NIRS format data structure as used 
 %   by the Homer2 analysis software. The format of the NIRS structure is detailed in the
 %   Homer2 user guide:
 %
@@ -15,7 +15,7 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %   Paramters:
 %
 %     nirsfn:               The file name of the output NIRS file, if empty, the dta is only
-%                           returned and not written to disc.
+%                           returned and not written to disk.
 %
 %     enum, data, events:   Data structures returned by LUMOFILE.READ
 %

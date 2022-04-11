@@ -1,7 +1,6 @@
 # lumomat
 MATLAB tools for LUMO data
 
-
 # Installation
 
 1. Download the latest version from the [release page](https://github.com/Gowerlabs/lumomat/releases)
@@ -13,9 +12,23 @@ MATLAB tools for LUMO data
 Load a `.lumo` file:
 
 ```
-[enum, data, events] = lumofile.read_lumo(filename)
+data = LumoData(filename)
 ```
 
+Convert a `.lumo` file to a SNIRF file:
+
+```
+data.write_NIRS(filename);
+```
+
+Conver a `.lumo` file to a NIRS file:
+
+```
+data.write_SNIRF(filename);
+```
+
+
+<!-- 
 Find the 3D location of the optode relating to the source involved in channel 342 of your data:
 
 ```
@@ -40,19 +53,7 @@ Get the data for channel 342 over all time:
 
 ```
 ch_datum = data.chn_dat(ch_idx, :);
-```
-
-Convert a `.lumo` file to a SNIRF file:
-
-```
-lumofile.write_SNIRF(filename, enum, data, events)
-```
-
-Conver a `.lumo` file to a NIRS file:
-
-```
-lumofile.write_NIRS(filename, enum, data, events)
-```
+``` -->
 
 # Overview
 
@@ -64,12 +65,10 @@ This is particularly true for LUMO, owing to its modular nature. The purpose of 
 
 # Features
 
+ - High-level stable object based API 'LumoData' for interacting with lumo output 
+ - Low-level (unstable) functional API for custom use-cases
  - Load .lumo files into a standardised format for further analysis
  - Write data to NIRS or SNIRF format
-
-# Notes
-
- - If your .lumo file does not contain a template layout file a warning will be issued and it will not be possible to write the data to different output formats. See the 'Layouts' section of this document to resolve this problem.
 
 
 # Nomenclature
@@ -86,7 +85,55 @@ Various terms are used throughout this guide and in the package itself. Many wil
  - *Layout*: a layout describes the docks present in a group, and each of the optodes which belong to the dock. When a cap is built, a template layout is created which provides the positions of all docks in a group as measured on a suitable phantom. Subject specific layouts might be mesaured by the user (and may consist of a subset of the docks in the group).
  - *Frame*: a frame is a measurement of all active channels made at a single point in time.
 
-# A guided tour
+
+# Using matlumo
+
+
+
+## Notes
+
+ - If your .lumo file does not contain a template layout file a warning will be issued and it will not be possible to write the data to different output formats. See the 'Layouts' section of this document to resolve this problem.
+
+!!!
+-- Add layout details to this section ---
+!!!
+
+
+# Local and global indexing
+
+The canonical enumeration of a LUMO system uses local indexing. This means that channels are defined by a 4-tuple: 
+
+*ch = (source node, source index, detector node, detector index)*
+
+This representation permits complete flexibility in the description of channels in the system, and maintains the link between channels, nodes, and docks, which is required in a modular system.
+
+Many data formats and analysis tools for (f)NIRS and DOT use an alternative format to index the channels of the system. The most common choice is the global spectroscopic scheme, in which a channel is defined by a 3-tuple:
+
+*ch = (source optode, detector optode, source wavelength)*
+
+This indexing scheme is less flexible, but it is sane because:
+
+ - most experiments involve spectoscopy, so it is a fair assumption that all source optodes will have associated with them sources at every wavelength
+ - most systems do not collocate sources and detectors in the same optode, so it is reasonable to assign an optode to be either belonging to sources, or detectors
+
+The canonical enumeration of a LUMO system can usually be converted to global indexing, allowing the data to be exported to a number of formats.
+
+# NIRS output
+
+# SNIRF output
+
+
+
+
+# Low-level functional API
+
+In most circumstances, users should choose the high-level object based API in order to access their data. The high-level wrapper is implemented on-top of a low-level functional API, namespaced in MATLAB packages. 
+
+No gaurantees are made regarding the stability of the low-level API, so users must take account of versioning when calling the low-level API.
+
+
+
+
 
 To begin, load a `.lumo` file:
 
@@ -432,28 +479,6 @@ where `custom_layout` can be one of:
 For a layout file to be usable, it must contain the loctions of all docks for which nodes were present. It is acceptable therefore that only a subset of the docks are recorded, corespondig to those docks where nodes are present.
 
 
-# Local and global indexing
-
-The canonical enumeration of a LUMO system uses local indexing. This means that channels are defined by a 4-tuple: 
-
-*ch = (source node, source index, detector node, detector index)*
-
-This representation permits complete flexibility in the description of channels in the system, and maintains the link between channels, nodes, and docks, which is required in a modular system.
-
-Many data formats and analysis tools for (f)NIRS and DOT use an alternative format to index the channels of the system. The most common choice is the global spectroscopic scheme, in which a channel is defined by a 3-tuple:
-
-*ch = (source optode, detector optode, source wavelength)*
-
-This indexing scheme is less flexible, but it is sane because:
-
- - most experiments involve spectoscopy, so it is a fair assumption that all source optodes will have associated with them sources at every wavelength
- - most systems do not collocate sources and detectors in the same optode, so it is reasonable to assign an optode to be either belonging to sources, or detectors
-
-The canonical enumeration of a LUMO system can usually be converted to global indexing, allowing the data to be exported to a number of formats.
-
-# NIRS output
-
-# SNIRF output
 
 # Bundled dependencies
 

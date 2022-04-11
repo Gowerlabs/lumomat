@@ -1,9 +1,9 @@
-function [enum, data, events] = read(lf_dir, varargin)
-% LUMOFILE.READ Read a LUMO file from disc
+function [enum, data, events] = read_lumo(lf_dir, varargin)
+% LUMOFILE.READ_LUMO Read a LUMO file from disk
 %
-% [enum, data, events] = LUMOFILE.READ(filename) 
+% [enum, data, events] = LUMOFILE.READ_LUMO(filename) 
 %
-% LUMOFILE.READ reads a LUMO file from disc, returning a set of data structures which
+% LUMOFILE.READ_LUMO reads a LUMO file from disk, returning a set of data structures which
 % contain a complete description of the system, and the available data.
 %
 %   Paramters:
