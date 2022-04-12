@@ -146,18 +146,18 @@ for qi = 1:SD.nSrcs
   
   switch sdstyle
     case 'standard'
-      SD.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coord_3d.x;
-      SD.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coord_3d.y;
-      SD.SrcPos(qi, 3) = layout.docks(didx).optodes(oidx).coord_3d.z;
+      SD.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coords_3d.x;
+      SD.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coords_3d.y;
+      SD.SrcPos(qi, 3) = layout.docks(didx).optodes(oidx).coords_3d.z;
       
     case 'flat'
-      SD.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coord_2d.x;
-      SD.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coord_2d.y;
+      SD.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coords_2d.x;
+      SD.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coords_2d.y;
       SD.SrcPos(qi, 3) = 0;
       
-      SD3D.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coord_3d.x;
-      SD3D.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coord_3d.y;
-      SD3D.SrcPos(qi, 3) = layout.docks(didx).optodes(oidx).coord_3d.z;
+      SD3D.SrcPos(qi, 1) = layout.docks(didx).optodes(oidx).coords_3d.x;
+      SD3D.SrcPos(qi, 2) = layout.docks(didx).optodes(oidx).coords_3d.y;
+      SD3D.SrcPos(qi, 3) = layout.docks(didx).optodes(oidx).coords_3d.z;
   end
   
 end
@@ -172,18 +172,18 @@ for mi = 1:SD.nDets
   
   switch sdstyle
     case 'standard'
-      SD.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coord_3d.x;
-      SD.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coord_3d.y;
-      SD.DetPos(mi, 3) = layout.docks(didx).optodes(oidx).coord_3d.z;
+      SD.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coords_3d.x;
+      SD.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coords_3d.y;
+      SD.DetPos(mi, 3) = layout.docks(didx).optodes(oidx).coords_3d.z;
       
     case 'flat'
-      SD.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coord_2d.x;
-      SD.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coord_2d.y;
+      SD.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coords_2d.x;
+      SD.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coords_2d.y;
       SD.DetPos(mi, 3) = 0;
       
-      SD3D.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coord_3d.x;
-      SD3D.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coord_3d.y;
-      SD3D.DetPos(mi, 3) = layout.docks(didx).optodes(oidx).coord_3d.z;
+      SD3D.DetPos(mi, 1) = layout.docks(didx).optodes(oidx).coords_3d.x;
+      SD3D.DetPos(mi, 2) = layout.docks(didx).optodes(oidx).coords_3d.y;
+      SD3D.DetPos(mi, 3) = layout.docks(didx).optodes(oidx).coords_3d.z;
   end
   
 end

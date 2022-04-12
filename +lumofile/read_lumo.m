@@ -94,8 +94,8 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %     struct with fields:
 % 
 %         name: 'B'
-%     coord_2d: [1×1 struct]
-%     coord_3d: [1×1 struct]
+%     coords_2d: [1×1 struct]
+%     coords_3d: [1×1 struct]
 % 
 %
 %   Note that a 'node' is synonymous with a LUMO tile, or a module in the nomencalature of

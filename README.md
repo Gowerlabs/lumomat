@@ -1,5 +1,7 @@
 # lumomat
+
 MATLAB tools for LUMO data
+
 
 # Installation
 
@@ -29,16 +31,41 @@ info =
             src_idx: 4
     src_optode_name: 'A'
              src_wl: 850
-       src_coord_2d: [94.3617 75.6020]
-       src_coord_3d: [87.3064 179.5761 110.9974]
+      src_coords_2d: [94.3617 75.6020]
+      src_coords_3d: [87.3064 179.5761 110.9974]
         det_node_id: 2
             det_idx: 2
     det_optode_name: '2'
-       det_coord_2d: [102.0520 81.9720]
-       det_coord_3d: [79.4308 175.0386 115.1332]
+      det_coords_2d: [102.0520 81.9720]
+      det_coords_3d: [79.4308 175.0386 115.1332]
 ```
 
-Find all of the channel indices where the source node ID is 1, the detecot node ID is 8, and the wavelength is 850nm:
+Get information about the channel from node ID 4, source optode 'B', wavelength 850nm, to node ID 7, detector optode '2' (note that the optode naming follows the tile description in the LUMO user manual):
+
+```
+>> data.chn_info(data.chn_find('src_node_id', 4, 'src_optode_name', 'B', 'wavelength', 850, 'det_node_id', 7, 'det_optode_name', '2'))
+
+
+ans = 
+
+  struct with fields:
+
+                idx: 1035
+        src_node_id: 4
+            src_idx: 5
+    src_optode_name: 'B'
+             src_wl: 850
+      src_coords_2d: [41.8617 45.3010]
+      src_coords_3d: [135.4298 179.5515 76.8679]
+        det_node_id: 7
+            det_idx: 3
+    det_optode_name: '3'
+      det_coords_2d: [146.8617 56.1110]
+      det_coords_3d: [41.0043 173.0580 89.2694]
+
+```
+
+Find all of the channel indices where the source node ID is 1, the detector node ID is 8, and the wavelength is 850nm:
 
 ```
 >> idx = data.chn_find('wavelength', 850, 'src_node_id', 1, 'det_node_id', 8).'
@@ -53,6 +80,7 @@ ans =
    174
    175
    176
+
    269
    270
    271
@@ -92,14 +120,17 @@ ans =
 Convert a `.lumo` file to a SNIRF file:
 
 ```
-data.write_NIRS(filename);
-```
-
-Conver a `.lumo` file to a NIRS file:
-
-```
 data.write_SNIRF(filename);
 ```
+
+Convert a `.lumo` file to a NIRS file, using a flat layout scheme (see below):
+
+```
+data.write_NIRS(filename, 'sdstyle', 'flat');
+```
+
+
+# Contents
 
 
 
@@ -107,7 +138,7 @@ data.write_SNIRF(filename);
 
 LUMO is a high-density, wearable, and modular instrument for diffuse optical tomography (DOT) and (functional) near-infrared spectroscopy ((f)NIRS). 
 
-In principle, the data produced in a DOT experiment is striaghtforward: a single mesaurement of intensity is made across every channel of the system many times per second, resulting in a big matrix of data. In practice, there is a signficant amount of book-keeping required in order to make sense of the relationship between that big matrix of numbers and the physical geometry of the system.
+In principle, the data produced in a DOT experiment is straightforward: a single measurement of intensity is made across every channel of the system many times per second, resulting in a big matrix of data. In practice, there is a significant amount of book-keeping required in order to make sense of the relationship between that big matrix of numbers and the physical geometry of the system.
 
 This is particularly true for LUMO, owing to its modular nature. The purpose of this package is to allow one to access, interpret, and export the data produced by LUMO, for the purposes of further analysis.
 
@@ -116,7 +147,7 @@ This is particularly true for LUMO, owing to its modular nature. The purpose of 
  - High-level stable object based API for interacting with lumo output 
  - Low-level functional API for custom use-cases
  - Load .lumo files into a standardised format for further analysis
- - Write data to NIRS or SNIRF format
+ - Write data to NIRS or SNIRF format, with additional LUMO specific features
 
 
 # Nomenclature
@@ -124,51 +155,125 @@ This is particularly true for LUMO, owing to its modular nature. The purpose of 
 Various terms are used throughout this guide and in the package itself. Many will be familiar to practitioners in (f)NIRS and DOT, others are specific to LUMO, and the most dangerous are ambiguous.
 
  - *Tile* / *Node* / *Module*: a LUMO tile is a single optoelectronic module containing a set of optical sources, detectors, motion processing units, and so on. Lumo tiles are plugged into docks to form a DOT system. In the logical representation of the system, a tile is called a 'node' (all tiles are nods, but not all nodes are tiles, but for most practical situations they are synonymous). A node is the same concept as a 'module' in the parlance of the SNIRF file format.
- - *Dock*: a dock is the recepticle into which a LUMO tile is installed. Multiple docks are normally connected together in a piece of headgear, or a patch, which is applied to the subject of the experiment.
- - *Group* / *Cap*: most fNIRS and DOT experiments involve mesaurements of the heamodynamics of the brain, and thus most systems are formed of headgear called caps into which multiple docks are installed. But there are many other interesting targets which can be measured, so the generic name for a gorup of docks which form a single mesaurement system is, imaginatively, a 'group'.
+ - *Dock*: a dock is the receptacle into which a LUMO tile is installed. Multiple docks are normally connected together in a piece of headgear, or a patch, which is applied to the subject of the experiment.
+ - *Group* / *Cap*: most fNIRS and DOT experiments involve measurements of the haemodynamics of the brain, and thus most systems are formed of headgear called caps into which multiple docks are installed. But there are many other interesting targets which can be measured, so the generic name for a group of docks which form a single measurement system is, imaginatively, a 'group'.
  - *Optode*: an optode is a single location from which light is emitted by one or more sources, and/or detected by one or more detectors. Conceptually there is a one-to-one mapping between the optode on a tile, and the optode on a dock: this is the link between logical sources and physical locations.
  - *Source*: LUMO considers a source to mean a single optical emitter at a specific wavelength. There are usually multiple sources at different wavelengths co-located at a single optode in order to enable spectroscopy. *This meaning may differ from some file formats and analysis packages which think of a source as an optode, with multiple wavelengths.*
  - *Detector*: a detector is a device which measures optical intensity. Like sources, detectors are associated with a particular optode.
  - *Channel*: a channel is formed from a single source-detector pair.
- - *Layout*: a layout describes the docks present in a group, and each of the optodes which belong to the dock. When a cap is built, a template layout is created which provides the positions of all docks in a group as measured on a suitable phantom. Subject specific layouts might be mesaured by the user (and may consist of a subset of the docks in the group).
+ - *Layout*: a layout describes the docks present in a group, and each of the optodes which belong to the dock. When a cap is built, a template layout is created which provides the positions of all docks in a group as measured on a suitable phantom. Subject specific layouts might be measured by the user (and may consist of a subset of the docks in the group).
  - *Frame*: a frame is a measurement of all active channels made at a single point in time.
 
 
-# Using matlumo
+# Using lumomat
+
+```
+data = LumoData(filename)
+```
 
 
 
+## Layouts
 
-
-
-
-## Notes
-
- - If your .lumo file does not contain a template layout file a warning will be issued and it will not be possible to write the data to different output formats. See the 'Layouts' section of this document to resolve this problem.
+If your .lumo file does not contain a template layout file a warning will be issued and it will not be possible to write the data to different output formats. See the 'Layouts' section of this document to resolve this problem.
 
 !!!
 -- Add layout details to this section ---
 !!!
 
 
-## Local and global indexing
+## Indexing
 
-The canonical enumeration of a LUMO system uses local indexing. This means that channels are defined by a 4-tuple: 
+The canonical enumeration of a LUMO system uses (node-) local indexing, and the sources are not inherently combined by wavelength to form optodes. As such, channels are represented internally by a 4-tuple:
 
 *ch = (source node, source index, detector node, detector index)*
 
-This representation permits complete flexibility in the description of channels in the system, and maintains the link between channels, nodes, and docks, which is required in a modular system.
+This representation permits complete flexibility in the description of channels in the system, and maintains the link between channels, nodes, and docks, which is useful in a modular system. 
 
-Many data formats and analysis tools for (f)NIRS and DOT use an alternative format to index the channels of the system. The most common choice is the global spectroscopic scheme, in which a channel is defined by a 3-tuple:
+Many data formats and analysis tools for (f)NIRS and DOT use an alternative format to index the channels of the system. The most common choice is the global spectroscopic scheme, in which the channels are indexed by their optodes and wavelength. In this scheme, a channel in defined by a 3-tuple:
 
-*ch = (source optode, detector optode, source wavelength)*
+*ch = (source optode, source wavelength, detector optode)*
 
 This indexing scheme is less flexible, but it is sane because:
 
- - most experiments involve spectoscopy, so it is a fair assumption that all source optodes will have associated with them sources at every wavelength
+ - most experiments involve spectroscopy, so it is a fair assumption that all source optodes will have associated with them sources at every wavelength
  - most systems do not collocate sources and detectors in the same optode, so it is reasonable to assign an optode to be either belonging to sources, or detectors
 
-The canonical enumeration of a LUMO system can usually be converted to global indexing, allowing the data to be exported to a number of formats.
+The canonical enumeration of a LUMO system can usually be converted to global spectroscopic indexing, and `lumomat` enforces that this is the case when you use the `LumoData` API. A method is provided to re-index the enumeration, returning the information required for further analysis or export to custom file formats:
+
+```
+[global_chns, src_optodes, det_optodes, global_wls] = data.reindex_global();
+```
+
+The `global_chns` output is an array of channel descriptors:
+
+```
+>> global_chns
+
+global_chns = 
+
+  1×3456 struct array with fields:
+
+    src_optode_idx
+    det_optode_idx
+    wl_idx
+```
+
+Where the `src_optode_idx`, `det_optode_idx`, and `wl_idx` fields index respectively into the remaining outputs. For example, we can inspect channel 932:
+
+```
+>> src_optodes(global_chns(932).src_optode_idx)
+
+ans = 
+
+  struct with fields:
+
+      node_id: 4
+         name: 'A'
+    coords_2d: [32.5000 61.5160]
+    coords_3d: [138.9866 164.5234 87.4543]
+
+>> global_wls(global_chns(932).wl_idx)
+
+ans =
+
+   850
+
+>> det_optodes(global_chns(932).det_optode_idx)
+
+ans = 
+
+  struct with fields:
+
+      node_id: 5
+         name: '3'
+    coords_2d: [76.8617 64.9910]
+    coords_3d: [104.2389 185.0212 102.2458]
+```
+
+The ordering of the channels is maintained, so we can compare with the internal canonical enumeration:
+
+```
+>> x.chn_info(932)
+
+ans = 
+
+  struct with fields:
+
+                idx: 932
+        src_node_id: 4
+            src_idx: 4
+    src_optode_name: 'A'
+             src_wl: 850
+       src_coords_2d: [32.5000 61.5160]
+       src_coords_3d: [138.9866 164.5234 87.4543]
+        det_node_id: 5
+            det_idx: 4
+    det_optode_name: '3'
+       det_coords_2d: [76.8617 64.9910]
+       det_coords_3d: [104.2389 185.0212 102.2458]
+
+```       
 
 ## NIRS output
 
@@ -178,6 +283,8 @@ Additional fields
 
 Additional fields
 
+SNIRF can support local, but that doesn't mean that tools do. For maximum felxibility.
+
 
 
 
@@ -185,7 +292,7 @@ Additional fields
 
 In most circumstances, users should choose the high-level object based API in order to access their data. The high-level wrapper is implemented on-top of a low-level functional API, namespaced in MATLAB packages. 
 
-No gaurantees are made regarding the stability of the low-level API, so users must take account of versioning when calling the low-level API.
+No guarantees are made regarding the stability of the low-level API, so users must take account of versioning when calling the low-level API.
 
 
 
@@ -207,7 +314,7 @@ LUMO file loaded in 11.0s
 Whilst loading the file, information will be printed regarding the contents of the file. Some `.lumo` files might not contain an embedded layout file. If this is the case a warning will be printed:
 
 ```
-Warning: The sepcified LUMO file does not contain an embedded layout file, and no layout has been specified when calling this function. The returned enumeration will lack layout information, and it will not be possible to convert this file to formats which require a layout. Specify an appropriate layout file to supress this warning, or copy an appropriate layout to the .LUMO folder in order for it to be used as an automatic fallback. 
+Warning: The specified LUMO file does not contain an embedded layout file, and no layout has been specified when calling this function. The returned enumeration will lack layout information, and it will not be possible to convert this file to formats which require a layout. Specify an appropriate layout file to suppress this warning, or copy an appropriate layout to the .LUMO folder in order for it to be used as an automatic fallback. 
 ```
 
 Follow the guidance, or read more about Layouts in a later section.
@@ -248,7 +355,7 @@ The `uid` field is a unique identifier which determines the group upon which the
 
 ## Nodes
 
-The `nodes` array contains information about each node that formed the system, incuding their sources and detectors. For example, the eigth entry:
+The `nodes` array contains information about each node that formed the system, including their sources and detectors. For example, the eighth entry:
 
 ```
 >> node_idx = 8;
@@ -266,7 +373,7 @@ ans =
      optodes: [1×7 struct]
 ```
 
-This node happens to have an `id` of 8, as well as being located in the eigth element of the array. This is because the system was fully popoulated. In general, the node ID and the index in the array do not correspond. We can see from the dimensionality of the `srcs` field that this node has six sources. Let's examine source one:
+This node happens to have an `id` of 8, as well as being located in the eighth element of the array. This is because the system was fully populated. In general, the node ID and the index in the array do not correspond. We can see from the dimensionality of the `srcs` field that this node has six sources. Let's examine source one:
 
 ```
 >> src_idx = 1;
@@ -280,7 +387,7 @@ ans =
     optode_idx: 5
 ```
 
-And we can extract information about all of them, for example, the unqiue wavelengths:
+And we can extract information about all of them, for example, the unique wavelengths:
 
 ```
 >> unique([enum.groups.nodes(node_idx).srcs.wl])
@@ -304,7 +411,7 @@ ans =
     type: 'S
 ```
 
-The name of the optode matches that used in the user manual for the LUMO system, it is only used for display purposes. This optode is of type 'S' which means that it is only associated with optical sources. This is of signficance when we discuss global indexing.
+The name of the optode matches that used in the user manual for the LUMO system, it is only used for display purposes. This optode is of type 'S' which means that it is only associated with optical sources. This is of significance when we discuss global indexing.
 
 We can physically locate this source by looking into the layout. Each dock in the layout shares an ID with the node it accommodates. A mapping is provided to convert an ID to an index into the array of docks:
 
@@ -324,14 +431,14 @@ optode =
   struct with fields:
 
         name: '1'
-    coord_2d: [1×1 struct]
-    coord_3d: [1×1 struct]
+   coords_2d: [1×1 struct]
+   coords_3d: [1×1 struct]
 ```
 
 And finally determine its location:
 
 ```
->> optode.coord_3d
+>> optode.coords_3d
 
 ans = 
 
@@ -361,7 +468,7 @@ ans =
     det_idx
 ```
 
-Since we have already developed significant affection for the first source on the eigth node, let's pick a channel for which it provides the illumination:
+Since we have already developed significant affection for the first source on the eighth node, let's pick a channel for which it provides the illumination:
 
 ```
 >> channels = enum.groups.channels;
@@ -397,7 +504,7 @@ ans =
          det_idx: 1
 ```
 
-The source node and source indices should not come as a suprise. The wavelength of this channel is:
+The source node and source indices should not come as a surprise. The wavelength of this channel is:
 
 ```
 >> enum.groups.nodes(node_idx).srcs(src_idx).wl
@@ -415,7 +522,7 @@ Following the same procedure as before, we can determine the location of the det
 >> det_optode_idx = det_node.dets(det_idx).optode_idx;
 >> det_dock_idx = enum.groups.layout.dockmap(det_node.id);
 >> det_dock = enum.groups.layout.docks(det_dock_idx);
->> det_optode = det_dock.optodes(det_optode_idx).coord_3d
+>> det_optode = det_dock.optodes(det_optode_idx).coords_3d
 
 det_optode = 
 
@@ -498,8 +605,8 @@ ans =
   struct with fields:
 
         name: '2'
-    coord_2d: [1×1 struct]
-    coord_3d: [1×1 struct]
+   coords_2d: [1×1 struct]
+   coords_3d: [1×1 struct]
 ```
 
 Because 
@@ -532,7 +639,7 @@ where `custom_layout` can be one of:
  - a structure matching that described here, or, 
  - an JSON file following the syntax of the default layout file (contact Gowerlabs for details)
 
-For a layout file to be usable, it must contain the loctions of all docks for which nodes were present. It is acceptable therefore that only a subset of the docks are recorded, corespondig to those docks where nodes are present.
+For a layout file to be usable, it must contain the locations of all docks for which nodes were present. It is acceptable therefore that only a subset of the docks are recorded, corresponding to those docks where nodes are present.
 
 
 

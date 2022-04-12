@@ -216,8 +216,8 @@ for ci = 1:nc
   ml_wi = find(ndq.srcs(ch.src_idx).wl == wavelengths);
   
   glch(ci,1) = ml_qi;
-  glch(ci,1) = ml_mi;
-  glch(ci,1) = ml_wi;
+  glch(ci,2) = ml_wi;
+  glch(ci,3) = ml_mi;
   
 end
 

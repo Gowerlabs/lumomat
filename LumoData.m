@@ -78,10 +78,6 @@ classdef LumoData
       %                     must be present for each occupied dock in the recording with the
       %                     apprporiate dock ID.
       %
-      %   'ignore_memory':  A logical value which indicates if the function should ignore 
-      %                     any potential performance issues arising from loading large
-      %                     amounts of data. Defaults to false.
-      %
       %
       %   (C) Gowerlabs Ltd., 2022
       %
@@ -139,13 +135,13 @@ classdef LumoData
       %       .src_idx:         Index of the source within the node
       %       .src_optode_name: Name of the source optode(e.g. 'A', 'B', 'C')
       %       .src_wl:          Wavelength of the source [nm]
-      %       .src_coord_2d:   (*) Two-dimensional co-ordinates of the source
-      %       .src_coord_3d:   (*) Three-dimensional co-ordinates of the source
+      %       .src_coords_2d:  (*) Two-dimensional co-ordinates of the source
+      %       .src_coords_3d:  (*) Three-dimensional co-ordinates of the source
       %       .det_node_id:     ID of the node containing the detector of this channel
       %       .det_idx:         Index of the detector within the node
       %       .det_optode_name: Name of the detector optode (e.g. '1', '2', '3', '4')
-      %       .det_coord_2d:   (*) Two-dimensional co-ordinates of the source
-      %       .det_coord_3d:   (*) Three-dimensional co-ordinates of the source
+      %       .det_coords_2d:  (*) Two-dimensional co-ordinates of the source
+      %       .det_coords_3d:  (*) Three-dimensional co-ordinates of the source
       %
       % (*) Optional fields which may be empty if the requisite information is unavailable.
       %
@@ -195,13 +191,13 @@ classdef LumoData
           'src_idx', src_idx, ...
           'src_optode_name', src_optode.name, ...
           'src_wl', src_wl, ...
-          'src_coord_2d', [src_optode.coord_2d.x src_optode.coord_2d.y], ...
-          'src_coord_3d', [src_optode.coord_3d.x src_optode.coord_3d.y src_optode.coord_3d.z], ...
+          'src_coords_2d', [src_optode.coords_2d.x src_optode.coords_2d.y], ...
+          'src_coords_3d', [src_optode.coords_3d.x src_optode.coords_3d.y src_optode.coords_3d.z], ...
           'det_node_id', det_node.id, ...
           'det_idx', det_idx, ...
           'det_optode_name', det_optode.name, ...
-          'det_coord_2d', [det_optode.coord_2d.x det_optode.coord_2d.y], ...
-          'det_coord_3d', [det_optode.coord_3d.x det_optode.coord_3d.y det_optode.coord_3d.z]);
+          'det_coords_2d', [det_optode.coords_2d.x det_optode.coords_2d.y], ...
+          'det_coords_3d', [det_optode.coords_3d.x det_optode.coords_3d.y det_optode.coords_3d.z]);
         
       end
 
@@ -221,6 +217,8 @@ classdef LumoData
       %   'det_node_id':      ID of the detector node
       %   'intratile':        When true, filters channels to those within a tile
       %   'intertile':        When true, filters channels to those across tiles
+      %   'src_optode_name':  Name of the source (e.g., 'A', 'B', 'C')
+      %   'det_optode_name':  Name of the detector (e.g., '1', '2', '3', '4')   
       %   'wavelength':       Filters by wavelength (specified in nm)
       %
       % Example:
@@ -244,7 +242,6 @@ classdef LumoData
       %    222
       %    223
       %    224
-
       %
       %
       % Notes:
@@ -255,12 +252,7 @@ classdef LumoData
       %
       %   (C) Gowerlabs Ltd., 2022
       %
-      
-      %%% TODO
-      %
-      %   'src_name':         Name of the source (e.g., 'A', 'B', 'C')
-      %   'det_name':         Name of the detector (e.g., '1', '2', '3', '4')
-         
+
       % Group
       gidx = method_group_idx(obj, varargin{:});
       
@@ -268,8 +260,8 @@ classdef LumoData
       p = inputParser;
       addOptional(p, 'src_node_id', [], @isnumeric);
       addOptional(p, 'det_node_id', [], @isnumeric);
-      addOptional(p, 'src_name', [], @ischar);
-      addOptional(p, 'det_name', [], @ischar);
+      addOptional(p, 'src_optode_name', [], @(x) (ischar(x) & isscalar(x)));
+      addOptional(p, 'det_optode_name', [], @(x) (ischar(x) & isscalar(x)));
       addOptional(p, 'intratile', false, @islogical);
       addOptional(p, 'intertile', false, @islogical);
       addOptional(p, 'wavelength', [], @isnumeric);
@@ -277,8 +269,8 @@ classdef LumoData
       
       f_src_node_id = p.Results.src_node_id;
       f_det_node_id = p.Results.det_node_id;
-%       f_src_name = p.Results.src_name;
-%       f_det_name = p.Results.det_name;
+      f_src_name = p.Results.src_optode_name;
+      f_det_name = p.Results.det_optode_name;
       f_intratile = p.Results.intratile;
       f_intertile = p.Results.intertile;
       f_wavelength = p.Results.wavelength;
@@ -290,7 +282,7 @@ classdef LumoData
       % Start with the full set
       cidx = true(length(channels), 1).';
             
-      % Apply filters...
+      % Source node filter
       if ~isempty(f_src_node_id)
         src_node_ids = [nodes([channels.src_node_idx]).id];
         if isscalar(f_src_node_id)
@@ -301,6 +293,7 @@ classdef LumoData
         cidx = cidx & fidx;
       end
 
+      % Detector node filter
       if ~isempty(f_det_node_id)
         det_node_ids = [nodes([channels.det_node_idx]).id];
         if isscalar(f_det_node_id)
@@ -311,18 +304,20 @@ classdef LumoData
         cidx = cidx & fidx;
       end
       
+      % Intratile filter
       if f_intratile
         fidx = [channels.src_node_idx] == [channels.det_node_idx];
         cidx = cidx & fidx;
       end
             
+      % Intertile filter
       if f_intertile
         fidx = [channels.src_node_idx] ~= [channels.det_node_idx];
         cidx = cidx & fidx;
       end
       
-      if ~isempty(f_wavelength)
-        
+      % Wavelength filter
+      if ~isempty(f_wavelength)        
         wls = zeros(length(channels),1).';
         for i = 1:length(channels)
           wls(i) = nodes(channels(i).src_node_idx).srcs(channels(i).src_idx).wl;
@@ -335,6 +330,29 @@ classdef LumoData
         cidx = cidx & fidx;        
       end
       
+      % Source optode name filter
+      if ~isempty(f_src_name)        
+        srcnames = zeros(length(channels),1).';
+        for i = 1:length(channels)
+          optode_idx = nodes(channels(i).src_node_idx).srcs(channels(i).src_idx).optode_idx;
+          srcnames(i) = nodes(channels(i).src_node_idx).optodes(optode_idx).name;
+        end
+        fidx = (srcnames == f_src_name);
+        cidx = cidx & fidx;        
+      end
+      
+      % Detector optode name filter
+      if ~isempty(f_det_name)        
+        detnames = zeros(length(channels),1).';
+        for i = 1:length(channels)
+          optode_idx = nodes(channels(i).det_node_idx).dets(channels(i).det_idx).optode_idx;
+          detnames(i) = nodes(channels(i).det_node_idx).optodes(optode_idx).name;
+        end
+        fidx = (detnames == f_det_name);
+        cidx = cidx & fidx;        
+      end
+            
+      % Convert logical vector to indices
       idx = find(cidx);
             
     end
@@ -379,29 +397,71 @@ classdef LumoData
       % Return data
       t = (0:(obj.data(gidx).nframes - 1))*obj.data(gidx).chn_dt*1e-3;
       
-    end     
-      
+    end
+         
     
-    % Reindexing
+    % Producing a flat output
     %
-    function [ch, sp, dp, wl] = flatten(obj, varargin)
+    function [global_chns, src_optodes, det_optodes, global_wls] = reindex_global(obj, varargin)
       
       % Group
       gidx = method_group_idx(obj, varargin{:});
       
-      % Global spectroscopic
-      % ch -> (source, detector, wavelength)
+      % Create the global spectroscopic mapping
+      [glchnsi, glsrci, gldeti, glwl] = lumofile.map_gs(obj.enum, 'group', gidx);
       
-      % Global
-      % ch -> (source, detector)
+      % Construct the channel structure
+      for i = 1:size(glchnsi,1)
+        
+        global_chns(i) = struct('src_optode_idx', glchnsi(i,1),...
+                                'det_optode_idx', glchnsi(i,3),...
+                                'wl_idx', glchnsi(i,2));
+        
+      end
       
-      % Local spectroscopic
-      % ch -> (source, detector)
+      % List of global wavelengths
+      global_wls = glwl;
       
-      ch=[];
-      sp=[];
-      dp=[];
-      wl=[];
+      % Construct the global source
+      for i = 1:size(glsrci,2)
+        
+        node_idx = glsrci(i).node_idx;
+        node_id = obj.enum.groups(gidx).nodes(node_idx).id;
+        optode_idx = glsrci(i).optode_idx;
+        dock_idx = obj.enum.groups(gidx).layout.dockmap(node_id);       
+        
+        node_optode = obj.enum.groups(gidx).nodes(node_idx).optodes(optode_idx);
+        optode = obj.enum.groups(gidx).layout.docks(dock_idx).optodes(optode_idx);
+        
+        assert(node_optode.name == optode.name)
+
+        src_optodes(i) = struct('node_id', node_id,...
+                                'name', node_optode.name,...
+                                'coords_2d', [optode.coords_2d.x optode.coords_2d.y], ...
+                                'coords_3d', [optode.coords_3d.x optode.coords_3d.y optode.coords_3d.z]);                               
+        
+      end
+      
+      % Construct the channel structure
+      for i = 1:size(gldeti,2)
+        
+        node_idx = gldeti(i).node_idx;
+        node_id = obj.enum.groups(gidx).nodes(node_idx).id;
+        optode_idx = gldeti(i).optode_idx;
+        dock_idx = obj.enum.groups(gidx).layout.dockmap(node_id);       
+        
+        node_optode = obj.enum.groups(gidx).nodes(node_idx).optodes(optode_idx);
+        optode = obj.enum.groups(gidx).layout.docks(dock_idx).optodes(optode_idx);
+        
+        assert(node_optode.name == optode.name)
+
+        det_optodes(i) = struct('node_id', node_id,...
+                                'name', node_optode.name,...
+                                'coords_2d', [optode.coords_2d.x optode.coords_2d.y], ...
+                                'coords_3d', [optode.coords_3d.x optode.coords_3d.y optode.coords_3d.z]);                               
+                               
+      end
+      
     end
     
   end

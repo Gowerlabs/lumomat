@@ -42,8 +42,8 @@ function [layout] = read_layout(fn)
 %   is defined by a structure:
 %
 %     optode.name:      A name for the optode (not used for indexing)
-%     optode.coord_2d:  Co-ordinates of the optode in a flattened 2D representation
-%     optode.coord_3d:  Co-orindates of the optode in 3D space
+%     optode.coords_2d:  Co-ordinates of the optode in a flattened 2D representation
+%     optode.coords_3d:  Co-orindates of the optode in 3D space
 %
 %   By navigating these structures in conjunction with the canonical channel listing built
 %   with LUMOFILE.READ_LUMO, one may construct a complete physical representaiton of the
@@ -144,16 +144,16 @@ function [cs_optode, opt_idx] = trans_optode_desc(lf_optode)
 switch lf_optode.optode_id
   case 'optode_1'
     opt_idx = 1;
-    opt_name = '1';
+    opt_name = '0';
   case 'optode_2'
     opt_idx = 2;
-    opt_name = '2';
+    opt_name = '1';
   case 'optode_3'
     opt_idx = 3;
-    opt_name = '3';
+    opt_name = '2';
   case 'optode_4'
     opt_idx = 4;
-    opt_name = '4';
+    opt_name = '3';
   case 'optode_a'
     opt_idx = 5;
     opt_name = 'A';
@@ -167,12 +167,12 @@ switch lf_optode.optode_id
     error('Error parsing optode structure (optode id %s)', lf_optode.optode_id);
 end
 
-coord_2d = lf_optode.coordinates_2d;
-coord_3d = lf_optode.coordinates_3d;
+coords_2d = lf_optode.coordinates_2d;
+coords_3d = lf_optode.coordinates_3d;
 
 cs_optode = struct(...
   'name', opt_name, ...
-  'coord_2d', coord_2d,...
-  'coord_3d', coord_3d);
+  'coords_2d', coords_2d,...
+  'coords_3d', coords_3d);
 
 end
