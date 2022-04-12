@@ -1,2 +1,2 @@
 *.asv
-+lumofile/+tests/samples
+test/samples

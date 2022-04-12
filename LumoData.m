@@ -94,7 +94,7 @@ classdef LumoData
           error('Unknown file extension %s', ext');
       end
       
-      warning('REQUIRE LAYOUT, REQUIRE SPECTROSCOPIC, COMPLETE DERIVED');
+      warning('REQUIRE LAYOUT, REQUIRE SPECTROSCOPIC, COMPLETE DERIVED PARAMETERS');
       
     end
     

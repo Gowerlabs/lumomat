@@ -1,6 +1,8 @@
 # lumomat
 
-MATLAB tools for LUMO data
+MATLAB tools for LUMO data.
+
+`lumomat` allows one to read LUMO output files, explore their contents, and export to common file formats.
 
 
 # Installation
@@ -117,11 +119,11 @@ ans =
     .
 ```
 
-Convert a `.lumo` file to a SNIRF file:
+<!-- Convert a `.lumo` file to a SNIRF file:
 
 ```
 data.write_SNIRF(filename);
-```
+``` -->
 
 Convert a `.lumo` file to a NIRS file, using a flat layout scheme (see below):
 
@@ -129,25 +131,13 @@ Convert a `.lumo` file to a NIRS file, using a flat layout scheme (see below):
 data.write_NIRS(filename, 'sdstyle', 'flat');
 ```
 
-
-# Contents
-
-
-
-# Overview
+# Introduction
 
 LUMO is a high-density, wearable, and modular instrument for diffuse optical tomography (DOT) and (functional) near-infrared spectroscopy ((f)NIRS). 
 
 In principle, the data produced in a DOT experiment is straightforward: a single measurement of intensity is made across every channel of the system many times per second, resulting in a big matrix of data. In practice, there is a significant amount of book-keeping required in order to make sense of the relationship between that big matrix of numbers and the physical geometry of the system.
 
 This is particularly true for LUMO, owing to its modular nature. The purpose of this package is to allow one to access, interpret, and export the data produced by LUMO, for the purposes of further analysis.
-
-# Features
-
- - High-level stable object based API for interacting with lumo output 
- - Low-level functional API for custom use-cases
- - Load .lumo files into a standardised format for further analysis
- - Write data to NIRS or SNIRF format, with additional LUMO specific features
 
 
 # Nomenclature
@@ -167,20 +157,49 @@ Various terms are used throughout this guide and in the package itself. Many wil
 
 # Using lumomat
 
+The main interface to `lumomat` is the `LumoData` class, which is constructed from a LUMO output file:
+
 ```
 data = LumoData(filename)
 ```
 
+A `LumoData` object has a number of methods which permit exploration of the data contained in the file. We summarise the methods here, see online help (or the Quickstart section) for further details.
+
+Channels can be explored:
+
+ - `chn_find`: locate channels by filtering on parameters
+ - `chn_info`: collate and return all information regarding a particular channel
+ - `chn_data`: get the raw data from a particular channel
+
+The system enumeration can be re-indexed:
+
+ - `reindex_global`: convert system description to global spectroscopic format, used by many DOT and (f)NIRS analysis programs, see the Indexing section below for further details.
+
+The data can be exported (with LUMO extensions, see below):
+
+ - `write_NIRS`: output to the .NIRS format
+ - `write_SNIRF`: output to the .SNIRF format 
 
 
 ## Layouts
 
-If your .lumo file does not contain a template layout file a warning will be issued and it will not be possible to write the data to different output formats. See the 'Layouts' section of this document to resolve this problem.
+The physical layout of a LUMO system is determined from a layout file which contains the position of each optode in each dock of a given group, and optional physiological landmarks. During manufacture, these positions are measured on a suitable phantom and a *default* layout file is produced. This layout file is copied into the output file when recording.
 
-!!!
--- Add layout details to this section ---
-!!!
+*Note: some versions of the LUMOview software do not embed a layout file in the `.lumo` output file as described above. If no layout file is embedded, a warning will be printed. In this case, `lumomat` will fall back to load any file named `layout.json` within the `.lumo` directory, so it is possible to copy, rename, and move the Gowerlabs' supplied layout file to restore functionality. Alternatively, the layout file may be specified as described for the provision of subject-specific layouts.*
 
+It is often the case that for the purposes of data analysis, practitioners will wish to provide subject-specific layout information measured during an experiment. This information can be used instead of the default layout:
+
+```
+>> data = LumoData(filename, 'layout', custom_layout);
+```
+
+where `custom_layout` can be one of:
+ - a structure matching that described in the layout section of the low-level API description, or, 
+ - an JSON file following the syntax of the default layout file (contact Gowerlabs for details)
+
+For a custom layout to be usable, it must contain the locations of all docks for which nodes were present. It is acceptable therefore that only a subset of the docks are recorded, corresponding to those docks where nodes are present.
+
+All data export methods write additional metadata to, e.g., NIRS or SNIRF files which permit identification of the node and optode corresponding to each source or detector position. As such, it is also possible for the user to modify the positions using measured data after export.
 
 ## Indexing
 
@@ -279,12 +298,10 @@ ans =
 
 Additional fields
 
-## SNIRF output
-
-Additional fields
-
-SNIRF can support local, but that doesn't mean that tools do. For maximum felxibility.
-
+<!-- ## SNIRF output
+ - Additional fields
+ - SNIRF does have support for local indexing, but this may not be supported by all tools which are able to read the format. For maximum flexibility, the system description is written in global spectroscopy format.
+ -->
 
 
 
@@ -293,10 +310,6 @@ SNIRF can support local, but that doesn't mean that tools do. For maximum felxib
 In most circumstances, users should choose the high-level object based API in order to access their data. The high-level wrapper is implemented on-top of a low-level functional API, namespaced in MATLAB packages. 
 
 No guarantees are made regarding the stability of the low-level API, so users must take account of versioning when calling the low-level API.
-
-
-
-
 
 To begin, load a `.lumo` file:
 
@@ -311,7 +324,7 @@ LUMO file (sample.lumo) assigned layout contains 12 docks, 84 optodes
 LUMO file loaded in 11.0s
 ```
 
-Whilst loading the file, information will be printed regarding the contents of the file. Some `.lumo` files might not contain an embedded layout file. If this is the case a warning will be printed:
+Whilst loading the file, information will be printed regarding the contents of the file. Some `.lumo` files might not contain an embedded layout file. If this is the case a warning will be printed.
 
 ```
 Warning: The specified LUMO file does not contain an embedded layout file, and no layout has been specified when calling this function. The returned enumeration will lack layout information, and it will not be possible to convert this file to formats which require a layout. Specify an appropriate layout file to suppress this warning, or copy an appropriate layout to the .LUMO folder in order for it to be used as an automatic fallback. 
@@ -561,10 +574,6 @@ Additional fields such as channel saturation flags, accelerometry, and gyro data
 
 The layout defines the physical organisation of a LUMO group.
 
-Whilst the majority of the data in the enumeration comes from the system itself, the layout information is copied from a file which is built when the particular group is manufactured, based on measurements made on a suitable phantom. We refer to this layout as the *default* layout.
-
-*Note: some versions of the LUMOview software do not embed a layout file in the `.lumo` output file. If no layout file is embedded, a warning will be printed and the resultant layout structure will be empty. In this instance the `read_lumo` function will fall back to load any file named `layout.json` within the `.lumo` directory, so it is possible to copy, rename, and move the Gowerlabs' supplied layout file to restore functionality. Alternatively, the layout file may be specified as described for the provision of subject-specific layouts.*
-
 Let us examine the layout structure:
 
 ```
@@ -627,20 +636,6 @@ ans =
        y: 203.8798
        z: 17.4744
 ```
-
-
-It is often the case that for the purposes of data analysis, practitioners will wish to provide subject-specific layout information measured during an experiment. This information can be used instead of the default layout:
-
-```
->> [enum, data, events] = lumofile.read_lumo('sample.lumo', 'layout', custom_layout);
-```
-
-where `custom_layout` can be one of:
- - a structure matching that described here, or, 
- - an JSON file following the syntax of the default layout file (contact Gowerlabs for details)
-
-For a layout file to be usable, it must contain the locations of all docks for which nodes were present. It is acceptable therefore that only a subset of the docks are recorded, corresponding to those docks where nodes are present.
-
 
 
 # Bundled dependencies

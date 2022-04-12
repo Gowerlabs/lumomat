@@ -105,7 +105,7 @@ end
 t = ((0:(data(gi).nframes - 1))./data(gi).chn_fps).';   % Time [nt x 1]
 
 % Build the global spectroscopic mapping
-[glch, glsrc, gldet, glwl] = map_gs(enum);
+[glch, glsrc, gldet, glwl] = lumofile.map_gs(enum);
 
 SD.nSrcs = size(glsrc,2);
 SD.nDets = size(gldet,2);
