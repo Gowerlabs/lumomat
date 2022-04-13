@@ -134,7 +134,7 @@ for ni = 1:n_node
     qimax = max([enum.groups(gi).nodes(ni).srcs.optode_idx]);
     mimax = max([enum.groups(gi).nodes(ni).dets.optode_idx]);
     
-    wavelengths = sort(unique([enum.groups(gi).nodes(1).srcs.wl]));
+    wavelengths = sort(unique([enum.groups(gi).nodes(ni).srcs.wl]));
     
   else
     
@@ -143,7 +143,7 @@ for ni = 1:n_node
     assert(length(ml) == ndm);
     assert(qimax == max([enum.groups(gi).nodes(ni).srcs.optode_idx]));
     assert(mimax == max([enum.groups(gi).nodes(ni).dets.optode_idx]));
-    assert(all(wavelengths == sort(unique([enum.groups(gi).nodes(1).srcs.wl]))));
+    assert(all(wavelengths == sort(unique([enum.groups(gi).nodes(ni).srcs.wl]))));
     
   end
   

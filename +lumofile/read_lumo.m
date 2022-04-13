@@ -125,15 +125,11 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 
 %%% TODOS
 %
-% - Form a node permuation vector which maps from node indices to reduced
-%   (dock present) node indices
+% - Form a node permuation vector which maps from node indices to reduced (dock present)
 % - Consder locking events to frame indices
 % - Group UID <-> Cap Name converstion
 % - Perform validation of cap UID in layout file
-% - Provide dialogue box when file is not specified on the command line
-% - Check that the file is actually a .lumo by parsing the name
-% - Expose global mapping
-% - Consider reduced layout mappings
+% - Consider reduced layout mappings and layout validation
 % - Optode filtering, and skip data option to allow inspection without inflection
 %
 
@@ -239,9 +235,11 @@ else
     'may be impacted']);
 end
 
+
 data = struct('chn_dat', chn_dat, ...
   'chn_fps', lf_dataparam.chn_fps, ...
   'chn_dt',  round((1/lf_dataparam.chn_fps)*1000), ...
+  'chn_sat', lf_dataparam.chn_sat, ...
   'nframes', lf_dataparam.nframes, ...
   'nchns',   lf_dataparam.nchns);
 
@@ -795,7 +793,7 @@ try
   lf_nsrc = rcdata.variables.n_srcs;
   lf_ndet = rcdata.variables.n_dets;
   lf_wls = rcdata.variables.wavelength;
-  
+    
   assert(all(sort(lf_nodes) == [enum.groups(gi).nodes.id]));
   assert(lf_nsrc == size(src_g2l, 1));
   assert(lf_ndet == size(det_g2l, 1));
@@ -823,6 +821,7 @@ try
   lf_framerate = rcdata.variables.framerate;
   lf_nframes = rcdata.variables.number_of_frames;
   
+  assert(size(lf_chvalid, 1) == lf_nchans);
   assert(size(lf_chlist, 1) == lf_nchans);
   assert(size(lf_chvalid, 1) == lf_nchans);
   

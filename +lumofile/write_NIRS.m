@@ -21,7 +21,7 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %
 %   Optional Parameters:
 %
-%   'sdstyle':  A string describing the style of the SD field to be built:
+%   'sd_style': A string describing the style of the SD field to be built:
 %
 %               'standard':  (default) construct SD output as per NIRS specification with 3D
 %                            locations for the sources and detectors.
@@ -84,12 +84,12 @@ function [nirs] = lumo_build_NIRS(enum, data, events, varargin)
 
 p = inputParser;
 expected_styles = {'standard', 'flat', 'dhtoolbox'};
-addOptional(p, 'sdstyle', 'standard', @(x) any(validatestring(x, expected_styles)));
+addOptional(p, 'sd_style', 'standard', @(x) any(validatestring(x, expected_styles)));
 addOptional(p, 'group', 1, @(x) (isnumeric(x) && x > 0));
 parse(p, varargin{:})
 
 gi = p.Results.group;
-sdstyle = p.Results.sdstyle;
+sdstyle = p.Results.sd_style;
 
 % Check the group index is sensible
 if (gi > length(enum.groups)) || (gi > length(data))
@@ -129,9 +129,7 @@ SD.DetPos = zeros(SD.nDets, 3);
 SD.SpatialUnit = 'mm';          % Out of spec but required by DHT
 
 if strcmp(sdstyle,'flat')
-  SD3D.SrcPos = SD.SrcPos;
-  SD3D.DetPos = SD.DetPos;
-  SD3D.SpatialUnit = 'mm';
+  SD3D = SD;
 end
 
 layout = enum.groups(gi).layout;
@@ -192,9 +190,9 @@ end
 %
 SD.MeasList = zeros(size(glch,1), 4);
 SD.MeasList(:,1) = glch(:,1);           % Global source index
-SD.MeasList(:,2) = glch(:,2);           % Global detector index
+SD.MeasList(:,2) = glch(:,3);           % Global detector index
 SD.MeasList(:,3) = 1;                   % Always one
-SD.MeasList(:,4) = glch(:,3);           % Global wavelength index
+SD.MeasList(:,4) = glch(:,2);           % Global wavelength index
 
 
 % Build event (stimulus) maitrx
@@ -240,8 +238,25 @@ end
 
 % Sort measurement list and data by (wavelength, source, detector) and apply to data,
 % transposing to specified [nt x nc]
-[SD.MeasList, didx] = sortrows(SD.MeasList,[4,1,2]);
-d = data(gi).chn_dat(didx,:).';
+[SD.MeasList, perm] = sortrows(SD.MeasList,[4,1,2]);
+d = data(gi).chn_dat(perm,:).';
+
+% Add MeasListAct with all channels enabled
+SD.MeasListAct = ones(size(SD.MeasList, 1), 1);
+
+% Add MeasListSat with saturation flags
+%
+% This is a DOT-HUB extension which encodes if a channel is -ever- saturated. The full data
+% is exposed int the lumoext structure.
+SD.MeasListActSat = any(data(gi).chn_sat, 2);
+SD.MeasListActSat = SD.MeasListActSat(perm);
+
+% Apply to 3D structure
+if strcmp(sdstyle,'flat')
+  SD3D.MeasList = SD.MeasList;
+  SD3D.MeasListAct = SD.MeasListAct;
+  SD3D.MeasListActSat = SD.MeasListActSat;
+end
 
 % A duplicate entry is specified for unknown reasons
 ml = SD.MeasList;
@@ -257,6 +272,11 @@ nirs.CondNames = CondNames;
 if strcmp(sdstyle, 'flat')
   nirs.SD3D = SD3D;
 end
+
+% Add lumo extension variables
+nirs.lumoext.chn_sort_perm = perm;
+nirs.lumoext.chn_sat = data(gi).chn_dat;
+nirs.lumoext.src_powers = [];
 
 end
 

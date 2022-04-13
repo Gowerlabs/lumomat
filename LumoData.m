@@ -34,15 +34,7 @@ classdef LumoData
     % Object-level derived quantities
     %
     ngroups       % Number of groups in the data structure
-    
-    % Group-level derviced quanties (ngroup x 1)
-    %
-    nsrcs         % Number of sources
-    ndets         % Number of detectors
-    nsrcpos       % Number of optodes containing sources
-    ndetpos       % Number of optodes containing detectors
-    nwls          % Number of wavelengths in the system
-    
+        
   end
   
   
@@ -94,8 +86,21 @@ classdef LumoData
           error('Unknown file extension %s', ext');
       end
       
-      warning('REQUIRE LAYOUT, REQUIRE SPECTROSCOPIC, COMPLETE DERIVED PARAMETERS');
+      % Assign derived parameters
+      obj.ngroups = length(obj.enum.groups);
       
+      for gidx = 1:obj.ngroups
+        
+        if isempty(obj.enum.groups(gidx).layout)
+          error('Unable to construct a LumoData object without a valid layout');
+        end
+
+        if ~lumofile.assert_spect(obj.enum, 'group', gidx)
+          error('Unable to construct a LumoData objet as system is non-spectroscopic');
+        end
+        
+      end
+
     end
     
     % File output

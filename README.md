@@ -128,7 +128,7 @@ data.write_SNIRF(filename);
 Convert a `.lumo` file to a NIRS file, using a flat layout scheme (see below):
 
 ```
-data.write_NIRS(filename, 'sdstyle', 'flat');
+data.write_NIRS(filename, 'sd_style', 'flat');
 ```
 
 # Introduction
@@ -273,7 +273,7 @@ ans =
 The ordering of the channels is maintained, so we can compare with the internal canonical enumeration:
 
 ```
->> x.chn_info(932)
+>> data.chn_info(932)
 
 ans = 
 
@@ -296,7 +296,42 @@ ans =
 
 ## NIRS output
 
-Additional fields
+The NIRS file format is used by a number of analysis programs, including HOMER2. 
+
+To construct a NIRS structure and write a NIRS file:
+
+```
+nirs = data.write_NIRS(filename);
+```
+
+The NIRS file contains an `SD` structure which describes the physical configuration of the sources and detectors of the system. In some references this layout is considered to be two-dimensional, though the specification provides for three-dimensional co-ordinates. The `write_NIRS` method provides an option which allows the `SD` structure to be written in two different formats to accommodate varying use cases:
+
+ - `standard` (default): the SD structure is built using the proper three-dimensional co-ordinates of the system
+ - `flat`: the SD structure is built using a flattened two-dimensional layout, and an additional `SD3D` structure is included in the NIRS file which contains the three-dimensional data. Files written in this format are compatible with the DOT-HUB toolbox.
+
+ To select a scheme, pass the appropriate argument pair, e.g.: 
+ 
+ ```
+ data.write_NIRS(filename, 'sd_style', 'flat');
+```
+
+*Note: The channel list in a NIRS file is re-indexed such that it is sorted by (wavelength, source index, detector index), as this is assumed in some analysis software. The sorting permutation is retained in the additional variable `lumoext.chn_sort_perm` in case the original ordering is required*
+
+Additional LUMO specific fields:
+
+ - `lumoext.chn_sat`: a logical vector (or matrix) indicating if a channel is saturated. If this field is a vector, a non-zero (or logical true) entry in the `i`th index indicates that the `i`th channel was saturated at some point in the recording. Since transient effects such as movement can cause temporary saturation, the use of a single flag for each channel can cause the loss of a number of channels which are useful for a large proportion of the recording. More recent versions of the LUMOview software will output data which permits allows this field to be output as a matrix of values such that saturation can be identified per-channel, per-frame, allowing for more granular exclusion of saturated data. Contact Gowerlabs to update your software if this feature is desired.
+ - (*) `lumoext.src_powers`: a matrix of source powers expressed in percent, such that element `(i,j)` gives the power of the source at the `i`th optode of the `j`th wavelength (when indexing into the `srcPos` and `Lambda` fields respectively).
+ - `lumoext.chn_sort_perm`: a permutation array which allows restoration of canonical channel ordering.
+
+*(\*) optional*
+
+Optional and compatibility fields:
+
+ - `SD.MeasListAct`: an vector of length (*no. channels*) to permit manual channel pruning, initialised by the exporter to include all channels
+ - `SD.MeasListActSat`: an array indicating if a channel should be included based on saturation, used by the DOT-HUB toolbox.
+
+*(\*) optional*
+
 
 <!-- ## SNIRF output
  - Additional fields
