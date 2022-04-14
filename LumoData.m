@@ -447,7 +447,7 @@ classdef LumoData
         
       end
       
-      % Construct the channel structure
+      % Construct the global detector
       for i = 1:size(gldeti,2)
         
         node_idx = gldeti(i).node_idx;
