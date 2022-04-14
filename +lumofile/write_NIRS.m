@@ -58,6 +58,15 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %
 %   SD.SpatialUnit:   A string representing the SI units of distance
 %
+%   lumoext.chn_sat:        An array (or matrix) of logical values which indicate if a
+%                           particular channel is saturated during the recording. When this
+%                           field is a matrix, the saturation flag is provided for every
+%                           frame in the recording, for more granular exclusion of data.
+%   lumoext.src_powers:     A matrix of source powers for each source optode, over each
+%                           wavelength.
+%   lumoext.chn_sort_perm:  A permutation which maps from the re-indexed channel listing
+%                           constructed for NIRS back to the canonical indexing
+%
 %
 % See also LUMO_READ
 %
