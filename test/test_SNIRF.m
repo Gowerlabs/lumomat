@@ -46,21 +46,26 @@ for i = 1:length(lumo_sample_files)
   
 end
 
-%%% TODO
+%%% Validation with PySNIRF2
 %
-% - Automatic SNIRF validation
+% Recent versions of MATLAB can directly call Python in order to use the PySNIRF2 validation
+% methods. To enable testing a suitable environment must be created, and activated within
+% MATLAB. Additionally, the requirements (from requirements.txt) must be installed.
 %
-% Manual validation (windows):
-%  .\env\Scripts\activate.ps1
+% For example, from the test directory:
+%
+% cd pyutil
+% python3 -m venv ./pytenv
+% ./pytenv/Scripts/Activate.ps1   # (Windows)
+% pip install -r requirements.txt
+%
+% Then in MATLAB:
+%
+%   pyenv('Version', fullfile('.','pyutil','pytenv','Scripts','python.exe'))
+% 
+% Owing to limited MATLAB support this is not currently fleshed out, and instead you will
+% have to manually validate the files, e.g., 
 %
 % >> from pysnirf2 import validateSnirf
 % >> result = validateSnirf(r'samples\sample.snirf.snirf')
 % >> assert result
-
-
-
-
-
-
-
-
