@@ -127,7 +127,6 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %
 % - Form a node permuation vector which maps from node indices to reduced (dock present)
 % - Consder locking events to frame indices
-% - Group UID <-> Cap Name converstion
 % - Perform validation of cap UID in layout file
 % - Consider reduced layout mappings and layout validation
 % - Optode filtering, and skip data option to allow inspection without inflection
@@ -615,16 +614,20 @@ try
   if isfield(enum_raw.Hub, 'firmware_version')
     temp = enum_raw.Hub.firmware_version;
     if temp ~= ""
-      enum.hub.fw_ver = temp;
+      enum.hub.fw_ver = string(temp);
+    else
+      enum.hub.fw_ver = '';
     end
   else
-    enum.hub.fw_ver = [];
+    enum.hub.fw_ver = '';
   end
     
   if isfield(enum_raw.Hub, 'hardware_version')
     temp = enum_raw.Hub.hardware_version;
     if temp ~= ""
       enum.hub.type = temp;
+    else
+      enum.hub.type = [];
     end
   else
     enum.hub.type = [];
@@ -633,10 +636,12 @@ try
   if isfield(enum_raw.Hub, 'hub_serial_number')
     temp = enum_raw.Hub.hub_serial_number;
     if temp ~= -1
-      enum.hub.sn = temp;
+      enum.hub.sn = string(temp);
+    else
+      enum.hub.sn = '';
     end
   else
-    enum.hub.sn = [];
+    enum.hub.sn = '';
   end
     
   
@@ -663,13 +668,25 @@ try
   for gi = 1:length(enum_raw.Hub.Group)
     
     enum.groups(gi) = struct();
-    enum.groups(gi).uid = enum_raw.Hub.Group(1).uid;
     
-    %%% TODO: Convert UID to name using the usual formula
-    %%%
-    %%%
-    % enum.groups(gi).name
+    % Normalise the UID to a hex string
+    uid_temp = enum_raw.Hub.Group(1).uid;
+    if isnumeric(uid_temp)
+      uid_temp =  ['0x' lower(dec2hex(12342352532, 8))];
+    end
+    enum.groups(gi).uid = uid_temp;
     
+    % Now form the name by converting UID to string
+    uid_temp = str2num(uid_temp);
+    
+    if(uid_temp > 20155392)
+      group_name = dec2base(uid_temp, 36);
+    else
+      group_name = sprintf('GA%05d', uid_temp);
+    end 
+    enum.groups(gi).name = group_name;
+   
+
     % Over each node (first pass for sorting)
     nn = length(enum_raw.Hub.Group(gi).Node);
     nodeidsort = zeros(nn, 1);
@@ -988,7 +1005,7 @@ end
 
 src_pwr = lf_src.Source_power;
 src_gsi = lf_src.group_location_index;
-cs_src = struct('wl', src_wl, 'optode_idx', src_optode_idx);
+cs_src = struct('wl', src_wl, 'optode_idx', src_optode_idx, 'power', src_pwr);
 
 end
 

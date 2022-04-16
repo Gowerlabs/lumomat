@@ -52,35 +52,21 @@ function write_SNIRF(snirffn,  enum, data, events, varargin)
 % Add temporal flags
 %
 
-% Check that a layout is available for every group
 ng = length(enum.groups);
 
+% Check that a layout is available for every group
 for gidx = 1:ng
   if isempty(enum.groups(gidx).layout)
     error('Input LUMO enumeration does not contain an embedded layout file');
   end
 end
 
-% try
-%     if(isa(fname,'H5ML.id'))
-%         fid=fname;
-%     else
-%         fid = H5F.create(fname, 'H5F_ACC_TRUNC', H5P.create('H5P_FILE_CREATE'), H5P.create('H5P_FILE_ACCESS'));
-%     end
-%     obj2h5(rootname,data,fid,1,opt);
-% catch ME
-%     if(exist('fid','var') && fid>0)
-%         H5F.close(fid);
-%     end
-%     rethrow(ME);
-% end
-
 fprintf('Writing SNIRF file %s...\n', snirffn);
 
 % Open the file
 try
   fid = H5F.create(snirffn, 'H5F_ACC_TRUNC', H5P.create('H5P_FILE_CREATE'), H5P.create('H5P_FILE_ACCESS'));
-catch
+catch e
   fprintf('Error creating SNIRF file %s\n', snirffn);
   rethrow(e);
 end
@@ -123,16 +109,87 @@ for gidx = 1:ng
   write_var_string(nirs_meta_group, 'TimeUnit', 'ms');
   write_var_string(nirs_meta_group, 'FrequencyUnit', 'Hz');
   
+  % Optional fields
+  write_var_string(nirs_meta_group, 'sourcePowerUnit', 'percent');
+  
   % LUMO sepcific fields
   write_var_string(nirs_meta_group, 'ManufacturerName', 'Gowerlabs');
   write_var_string(nirs_meta_group, 'Model', 'LUMO');
-
-  % write_var_string(nirs_meta_group, 'Hub SN');
-  % write_var_string(nirs_meta_group, 'Layout', jsonencode...)
-  % write_var_string(nirs_meta_group, 'Nodes');
-  % write_var_string(nirs_meta_group, 'Group UID')
-   
   
+  % LUMO specific metadata
+  lumo_md_group = create_group(nirs_meta_group, 'lumo');
+ 
+  write_var_string(lumo_md_group, 'formatVersion', '1.0.0');
+  
+  % Write global saturation
+  write_int32(lumo_md_group, 'saturationFlags', int32(any(data(gidx).chn_sat, 2)));
+
+  %%% Output hub and group information
+  write_var_string(lumo_md_group, 'hubSerialNumber', string(enum.hub.sn));
+  write_var_string(lumo_md_group, 'groupID', enum.groups(gidx).uid);
+  write_var_string(lumo_md_group, 'groupName', enum.groups(gidx).name);
+  
+  %%% Output the canonical map
+  dockmap = enum.groups(gidx).layout.dockmap;
+  nc = length(enum.groups(gidx).channels);
+  canmap = zeros(nc, 7, 'int32');
+  canmap(:,1) = [enum.groups(gidx).channels.src_node_idx];  % Source node index
+  canmap(:,2) = dockmap(canmap(:,1));                       % Source dock index
+  
+  src_idx = [enum.groups(gidx).channels.src_idx];
+  for ci = 1:nc 
+    src = enum.groups(gidx).nodes(canmap(ci,1)).srcs(src_idx(ci));
+    canmap(:,3) = src.optode_idx;   % Optode index
+    canmap(:,4) = src.wl;           % Wavelength
+  end
+  
+  canmap(:,5) = [enum.groups(gidx).channels.det_node_idx];  % Detecot node index
+  canmap(:,6) = dockmap(canmap(:,5));                       % Detector dock index
+  
+  det_idx = [enum.groups(gidx).channels.det_idx];
+  for ci = 1:nc 
+    det = enum.groups(gidx).nodes(canmap(ci,1)).dets(det_idx(ci));
+    canmap(:,7) = det.optode_idx;   % Optode index
+  end
+  
+  write_int32(lumo_md_group, 'canonincalMap', canmap);
+    
+  %% Output abbreviated nodal enumeration
+  nn = length(enum.groups(gidx).nodes);
+  for i = 1:nn
+    node_group = create_group(lumo_md_group, ['node' num2str(i)]);
+    write_int32(node_group, 'id', enum.groups(gidx).nodes(i).id);
+    write_int32(node_group, 'revision', enum.groups(gidx).nodes(i).revision);
+    write_var_string(node_group, 'firmwareVersion',  enum.groups(gidx).nodes(i).fwver);    
+    H5G.close(node_group); 
+  end
+  
+  %% Output abbreviated dock information
+  nd = length(enum.groups(gidx).layout.docks);
+  for i = 1:nd
+    dock = enum.groups(gidx).layout.docks(i);
+    dock_group = create_group(lumo_md_group, ['dock' num2str(i)]);
+    write_int32(dock_group, 'id', dock.id);
+    write_var_string(dock_group, 'optodeNames', {dock.optodes.name});
+    
+    % Write out the optode positions
+    no = length(dock.optodes);
+    optodePos2D = zeros(no, 2);
+    optodePos3D = zeros(no, 3);
+    for j = 1:no
+      optode = dock.optodes(j);
+      optodePos2D(j,:) = [optode.coords_2d.x optode.coords_2d.y];
+      optodePos3D(j,:) = [optode.coords_3d.x optode.coords_3d.y optode.coords_3d.z];
+    end
+    
+    write_double(dock_group, 'optodePos2D', optodePos2D);
+    write_double(dock_group, 'optodePos3D', optodePos3D);  
+    
+    H5G.close(dock_group);
+  end
+
+  
+  H5G.close(lumo_md_group);  
   H5G.close(nirs_meta_group);
   
   % Create data block
@@ -177,35 +234,6 @@ end
 end
 
 
-function write_chn_dat_block(nirs_data_group, data)
-
-h5_data_size = fliplr(size(data));
-h5_data_rank = ndims(data);
-h5_chunk_size = fliplr([size(data,1) 1]);
-h5_dflt_lvl = 3;
-
-tp = H5T.copy('H5T_IEEE_F32LE');            % Single precision little endien
-% Dataspace
-ds = H5S.create_simple(h5_data_rank, h5_data_size, h5_data_size);
-pl = H5P.create('H5P_DATASET_CREATE');      % Porperty list
-H5P.set_chunk(pl, h5_chunk_size);           % Set chunk size to be one frame
-H5P.set_deflate(pl, h5_dflt_lvl);           % Set deflate compression
-% Dataset
-dset = H5D.create(nirs_data_group, 'dataTimeSeries', tp, ds, pl);
-
-% Write
-H5D.write(dset, tp, 'H5S_ALL', 'H5S_ALL', 'H5P_DEFAULT', data);
-
-% Clean up
-H5P.close(pl);
-H5T.close(tp);
-H5S.close(ds);
-H5D.close(dset);
-
-warning("NOT WRITING TIME");
-
-end
-
 function write_measlist(nirs_data_group, gi, enum, glch)
 
   nch = size(glch,1);
@@ -218,22 +246,26 @@ function write_measlist(nirs_data_group, gi, enum, glch)
     % glch(ci, 2) -> global wavelength index of channel ci
     % glch(ci, 3) -> global detector index of channel ci
 
-    write_int32(nirs_mli_group, 'sourceIndex', glch(ci,1))
-    write_int32(nirs_mli_group, 'detectorIndex', glch(ci,3))
-    write_int32(nirs_mli_group, 'wavelengthIndex', glch(ci,2))
-    write_int32(nirs_mli_group, 'dataType', int32(1))
-    write_int32(nirs_mli_group, 'dataTypeIndex', int32(1))
+    write_int32(nirs_mli_group, 'sourceIndex', glch(ci,1));
+    write_int32(nirs_mli_group, 'detectorIndex', glch(ci,3));
+    write_int32(nirs_mli_group, 'wavelengthIndex', glch(ci,2));
+    write_int32(nirs_mli_group, 'dataType', int32(1));
+    write_int32(nirs_mli_group, 'dataTypeIndex', int32(1));
     
-    %% TODO can we include this field even if we use global indexing? 
+    % Add source power (this has to be acquired via the canonical enumeration)
+    ch = enum.groups(gi).channels(ci);
+    src_node_idx = ch.src_node_idx;
+    src_node = enum.groups(gi).nodes(src_node_idx);
+    src_pwr = src_node.srcs(ch.src_idx).power;
+    write_double(nirs_mli_group, 'sourcePower', double(src_pwr));
+    
+    % Note: it is may be inappropriate to place this information in these fields as we have
+    % chosen to export in a global format. We will instead output this in our global to
+    % local metadata, which is more consistent with the intent of the specification.
     %
-    write_int32(nirs_mli_group, 'sourceModuleIndex', enum.groups(gi).channels(ci).src_node_idx);  
-    write_int32(nirs_mli_group, 'detectorModuleIndex', enum.groups(gi).channels(ci).det_node_idx);
-    
-    if ci == 1
-      warning('Not writing source power');
-    end
-    %write_float(nirs_ml_group, 'srcPower', X)
-       
+    % write_int32(nirs_mli_group, 'sourceModuleIndex', enum.groups(gi).channels(ci).src_node_idx);  
+    % write_int32(nirs_mli_group, 'detectorModuleIndex', enum.groups(gi).channels(ci).det_node_idx);
+           
   end
   
 end
@@ -241,7 +273,7 @@ end
   
 function write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl)
   
-  write_double(nirs_probe_group, 'wavelengths', glwl);
+  write_double(nirs_probe_group, 'wavelengths', double(glwl));
    
   nwl = length(glwl);
   nsrc = size(glsrc,2);
@@ -251,6 +283,7 @@ function write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl)
   sourcePos3D = zeros(nsrc, 3);
   sourceLabels = cell(nsrc, nwl);
 
+  % Buidl source positions
   for i = 1:nsrc
 
     node_idx = glsrc(i).node_idx;
@@ -274,9 +307,9 @@ function write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl)
   
   write_double(nirs_probe_group, 'sourcePos2D', sourcePos2D);
   write_double(nirs_probe_group, 'sourcePos3D', sourcePos3D);
+  write_var_string(nirs_probe_group, 'sourceLabels', sourceLabels);
   
-    % Build source positions
-    
+  % Build detector positions
   detectorPos2D = zeros(ndet, 2);
   detectorPos3D = zeros(ndet, 3);
   detectorLabels = cell(ndet, 1);
@@ -301,23 +334,26 @@ function write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl)
       
   write_double(nirs_probe_group, 'detectorPos2D', detectorPos2D);
   write_double(nirs_probe_group, 'detectorPos3D', detectorPos3D);
-
-  %% TODO
-  %
-  % In the global scehme we can add some additional data for the user here. If we are
-  % permitted to store the module indices despite using a global enumeration, these can
-  % simply be 'A', '!', etc.
-  %
-  % sourceLabels
-  % detectorLabels
+  write_var_string(nirs_probe_group, 'detectorLabels', detectorLabels);
   
-  %% TODO
-  %
-  % Grab data from the layout
-  %
-  %write_double(nirs_prove_group, 'landmarkPos3D', X);
-  %write_double(nirs_probe_group, 'landmarkLabels', X);
-  
+  % Write landmarks  
+  if ~isempty(enum.groups(gidx).layout.landmarks)
+    
+    nl = length(enum.groups(gidx).layout.landmarks);
+    landmarkLabels = cell(nl, 1);
+    landmarkPos3D = zeros(nl, 4);
+ 
+    for i = 1:nl
+      landmark = enum.groups(gidx).layout.landmarks(i);
+      landmarkLabels{i} = landmark.name;
+      landmarkPos3D(i, 1:3) = [landmark.coords_3d.x landmark.coords_3d.y landmark.coords_3d.z];
+      landmarkPos3D(i, 4) = i;
+    end
+    
+    write_double(nirs_probe_group, 'landmarkPos3D', double(landmarkPos3D));
+    write_var_string(nirs_probe_group, 'landmarkLabels', landmarkLabels);
+    
+  end
  
 end
 
@@ -326,17 +362,90 @@ pl = 'H5P_DEFAULT';
 gid = H5G.create(base, path, pl, pl, pl);
 end
 
+%%% HDF5 writing functions
+%
+% Notes:
+%
+% - When a single element is provided, a scalar dataset is written
+% - When a vector (either row or column) is provided, a rank 1 dataset is written
+% - When a matrix is provided, it is transposed before write
+
+function write_chn_dat_block(nirs_data_group, data)
+
+h5_data_size = fliplr(size(data));
+h5_data_rank = ndims(data);
+
+%h5_chunk_size = fliplr([size(data,1) 1]);
+h5_chunk_size = fliplr([1 size(data,2)]);
+
+h5_dflt_lvl = 7;
+
+tp = H5T.copy('H5T_IEEE_F32LE');                                  % Type desc.
+ds = H5S.create_simple(h5_data_rank, h5_data_size, h5_data_size); % Dataspace
+pl = H5P.create('H5P_DATASET_CREATE');                            % Porperty list
+
+% For now (e.g. before lazy loading and channel by channel manipulation), we will write the
+% data time series without chunking and compression (typical ratios appear to be around 1.2
+% when chunking along the time axis).
+%
+% H5P.set_chunk(pl, h5_chunk_size);           % Set chunk size to be one frame
+% H5P.set_deflate(pl, h5_dflt_lvl);           % Set deflate compression
+
+% Dataset
+dset = H5D.create(nirs_data_group, 'dataTimeSeries', tp, ds, pl);
+
+% Write
+H5D.write(dset, tp, 'H5S_ALL', 'H5S_ALL', 'H5P_DEFAULT', data);
+
+% Clean up
+H5P.close(pl);
+H5T.close(tp);
+H5S.close(ds);
+H5D.close(dset);
+
+end
+
+
+
 function write_var_string(base, path, str)
+% Write a string or a cell array of strings as a scalar, vector or matrix of variable length
+% HDF5 strings.
 
 % Prepare
 tp = H5T.copy('H5T_C_S1');                  % String type
 H5T.set_size(tp, 'H5T_VARIABLE');           % Set string variable length
-ds = H5S.create('H5S_SCALAR');   
-pl = H5P.create('H5P_DATASET_CREATE');      % Porperty list
-dset = H5D.create(base, path, tp, ds, pl);  % Dataset
 
-% Write
-H5D.write(dset, tp, 'H5S_ALL', 'H5S_ALL', 'H5P_DEFAULT', str);
+if ~iscell(str)
+  
+  ds = H5S.create('H5S_SCALAR');   
+  pl = H5P.create('H5P_DATASET_CREATE');      % Porperty list
+  dset = H5D.create(base, path, tp, ds, pl);  % Dataset
+
+  % Write
+  H5D.write(dset, tp, 'H5S_ALL', 'H5S_ALL', 'H5P_DEFAULT', str);
+  
+else
+  
+  if rankn(str) == 1
+    % Vector
+    len = numel(str);
+    ds = H5S.create_simple(1, len, len);
+  elseif rankn(str) == 2
+    % Matrix (must transpose)
+    str = str.';
+    ds = H5S.create_simple(2, fliplr(size(str)), fliplr(size(str)));
+  else
+    error('Data dimensionality not supported');
+  end
+   
+  pl = H5P.create('H5P_DATASET_CREATE');      % Porperty list
+  dset = H5D.create(base, path, tp, ds, pl);  % Dataset
+
+  % Write 
+  H5D.write(dset, tp, 'H5S_ALL', 'H5S_ALL', 'H5P_DEFAULT', str);
+    
+  
+end
 
 % Clean up
 H5P.close(pl);
@@ -352,12 +461,12 @@ write_core(base, path, int32(val), tp);
 end
 
 function write_double(base, path, val)
-tp = H5T.copy('H5T_IEEE_F64BE');
+tp = H5T.copy('H5T_IEEE_F64LE');
 write_core(base, path, double(val), tp);
 end
 
 function write_single(base, path, val)
-tp = H5T.copy('H5T_IEEE_F32BE');
+tp = H5T.copy('H5T_IEEE_F32LE');
 write_core(base, path, single(val), tp);
 end
 
@@ -372,7 +481,8 @@ elseif rankn(val) == 1
   len = numel(val);
   ds = H5S.create_simple(1, len, len);
 elseif rankn(val) == 2
-  % Matrix
+  % Matrix (must transpose)
+  val = val.';
   ds = H5S.create_simple(2, fliplr(size(val)), fliplr(size(val)));
 else
   H5T.close(tp);

@@ -26,17 +26,19 @@ function [glch, glsrc, gldet, glwl] = map_gs(enum, varargin)
 %             glch(ci, 3) -> global detector index of channel ci
 %
 %     glsrc:  The global to local source mapping array [n_src_pos x 1] maps a global source
-%             index into a (node_idx, src_optode_idx) pair, allowing the location of the
-%             optode to be looked up in the associated template layout.
+%             index into the canonical enumeration, allowing e.g., the location of an optode
+%             or source power to be determined.
 %
 %             glsrc(glch(ci,1)).node_idx
+%             glsrc(glch(ci,1)).src_idx
 %             glsrc(glch(ci,1)).source_optode_idx
 %
 %     gldet:  The global to local detector mapping array [n_det_pos x 1] maps a global
-%             detector index into a (node_idx, det_optode_idx) pair, allowing the location
-%             of the optode to be looked up in the associated template layout.
+%             detector index into the canonical enumeration, allowing e.g., the location of 
+%             an optode to be looked up in the associated template layout.
 %
 %             gldet(glch(ci,3)).node_idx
+%             glsrc(glch(ci,1)).det_idx
 %             gldet(glch(ci,3)).detector_optode_idx
 %
 %     glwl:   The global wavelength mapping.
