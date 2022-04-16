@@ -314,15 +314,21 @@ LUMO includes additional fields in the SNIRF metadata, alongside a number of aux
  - `saturationFlag`: a vector of integers in which a non-zero value in the `i`th element indicates that saturation of the `i`th channel occurred at some time during the recording. Transient saturation can court during, e.g., movement, so this global flag can exclude many channels which are viable for the vast majority of the recording. Some versions of the LUMO software will export a time-series of saturation flags (see auxiliary measurements) to enable more granular channel filtering.
  - `hubSerialNumber`: the serial number of the Hub to which the group was connected.
  - `groupName`: the name of group upon which the data was acquired (e.g. the cap serial number).
- - `canonicalMap`: is a matrix which allows the global channels indices stored in the probe to be mapped to the canonical enumeration. The rows of the matrix describe:
-   1. source node ID, the position (dock) of the source node in the group
-   2. source node index, the zero-based index of the source node, which can be used to look up details about the node in other lumo metadata
-   3. source index, internal use only
-   4. detector node ID, the position (dock) of the detector node in the group
-   5. detector node index, the zero-based index of the detector node, which can be used to look up details about the node in other lumo metadata
-   6. detector index, internal use only
+ - `canonicalMap`: is a flattened and abbreviated version of the canonical enumeration used internally, the values of this matrix can be used to index into the `nodes` and `docks` indexed groups. The values can also be used on their own in order to restore locality information (e.g. the nodes to which channels belong) from the global enumeration. The rows of the matrix are each 1-based indices:
+   1. source node index, used to index the `nodes(i)` structure
+   2. source dock index, used to index the `docks(i)` structure
+   3. source optode index, used to index the `docks(i)/optodePosXD` arrays
+   4. source wavelength, in nm
+   5. detector node index
+   6. detector dock index 
+   7. detector optode index
+ - `nodes(i)`: an indexed group of information about nodes, such as their 'id' 
+ - `docks(i)`: an indexed group of all docks in the layout. Note that unlike the global enumeration, which only contains information about the optode positions which are in use, the dock structure contains information about all the docks in the system, which may be useful for, e.g., visualisation. Each dock contains a number of datasets, including:
+   - information such as the optode `name`
+   - an array of optode locations in flattned two-dimenional and three-dimnsional co-ordinates `optodePosXD`
 
-Some additional fields are provided which are not required by the user. These include the `groupID`, and the vectors `nodeRevision` and `nodeFirmwareVersion`.
+
+
 
 ### LUMO auxiliary measurements
 
@@ -372,8 +378,6 @@ The NIRS file contains an `SD` structure which describes the physical configurat
 
  - `SD.MeasListAct`: an vector of length (*no. channels*) to permit manual channel pruning, initialised by the exporter to include all channels
  - `SD.MeasListActSat`: an array indicating if a channel should be included based on saturation, used by the DOT-HUB toolbox.
-
-*(\*) optional*
 
 
 # Low-level functional API
