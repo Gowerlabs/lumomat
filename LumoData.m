@@ -79,9 +79,8 @@ classdef LumoData
       switch lower(ext)
         case '.lumo'
           [obj.enum, obj.data, obj.evts] = lumofile.read_lumo(fn, varargin{:});
-        case 'lufr'
-          error('LUFR file loading is not implemented');
-          % [obj.enum, obj.data, obj.evts] = lumofile.read_lufr(fn, varargin{:});
+        case '.lufr'
+          [obj.enum, obj.data, obj.evts] = lumofile.read_lufr(fn, varargin{:});
         otherwise
           error('Unknown file extension %s', ext');
       end
@@ -112,17 +111,17 @@ classdef LumoData
       %
       % See LUMOFILE.write_NIRS for details.
       %
-      [nirs] = lumofile.write_NIRS(fn, obj.enum, obj.data, obj.evts, varargin{:});
+      nirs = lumofile.write_NIRS(fn, obj.enum, obj.data, obj.evts, varargin{:});
     end
     
-    function write_SNIRF(obj, fn, varargin)
-      % WRITE_NIRS Covert LUMO data to NIRS format and write to disk
+    function snirf = write_SNIRF(obj, fn, varargin)
+      % WRITE_SNIRF Covert LUMO data to SNIRF format and write to disk
       %
-      %   [nirs] = WRITE_NIRS(filename)
+      %   [snirf] = WRITE_SNIRF(filename)
       %
       % See LUMOFILE.write_SNIRF for details.
       %
-      lumofile.write_SNIRF(fn, obj.enum, obj.data, obj.evts, varargin{:});
+      snirf = lumofile.write_SNIRF(fn, obj.enum, obj.data, obj.evts, varargin{:});
     end
     
     % Channel query

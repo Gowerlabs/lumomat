@@ -137,8 +137,8 @@ ts_load = tic;
 
 % Parse inputs
 p = inputParser;
-addOptional(p, 'ignore_memory', false, @islogical);
-addOptional(p, 'layout', []);
+addParameter(p, 'ignore_memory', false, @islogical);
+addParameter(p, 'layout', []);
 parse(p, varargin{:});
 
 ignore_memory = p.Results.ignore_memory;
@@ -557,7 +557,7 @@ else
         ts = lf_events{ii}.Timestamp;
       end
 
-      events(ii) = struct('mark', lf_events{ii}.name, 'ts', ts);
+      events(ii) = struct('mark', lf_events{ii}.name, 'timestamp', ts);
 
     end
   catch e
@@ -636,7 +636,7 @@ try
   if isfield(enum_raw.Hub, 'hub_serial_number')
     temp = enum_raw.Hub.hub_serial_number;
     if temp ~= -1
-      enum.hub.sn = string(temp);
+      enum.hub.serial = string(temp);
     else
       enum.hub.sn = '';
     end
@@ -669,23 +669,11 @@ try
     
     enum.groups(gi) = struct();
     
-    % Normalise the UID to a hex string
-    uid_temp = enum_raw.Hub.Group(1).uid;
-    if isnumeric(uid_temp)
-      uid_temp =  ['0x' lower(dec2hex(12342352532, 8))];
-    end
-    enum.groups(gi).uid = uid_temp;
-    
-    % Now form the name by converting UID to string
-    uid_temp = str2num(uid_temp);
-    
-    if(uid_temp > 20155392)
-      group_name = dec2base(uid_temp, 36);
-    else
-      group_name = sprintf('GA%05d', uid_temp);
-    end 
+    % Normalise the UID to a hex string and a name
+    [uid_hex, uid_name] = lumofile.norm_gid(enum_raw.Hub.Group(1).uid);
+    enum.groups(gi).id = uid_hex;
     enum.groups(gi).name = group_name;
-   
+    
 
     % Over each node (first pass for sorting)
     nn = length(enum_raw.Hub.Group(gi).Node);
@@ -702,7 +690,7 @@ try
       
       cs_node = struct(...
         'id',       enum_raw.Hub.Group(gi).Node{ni}.node_id, ...
-        'revision', enum_raw.Hub.Group(gi).Node{ni}.revision_id, ...
+        'rev',      enum_raw.Hub.Group(gi).Node{ni}.revision_id, ...
         'fwver',    enum_raw.Hub.Group(gi).Node{ni}.firmware_version);
       
       %%% TODO: Add checks described below
