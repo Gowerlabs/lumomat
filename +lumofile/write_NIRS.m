@@ -56,7 +56,17 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %   The following additional fields are provided in NIRS structures output from this
 %   function, which are not present in the specification:
 %
-%   SD.SpatialUnit:   A string representing the SI units of distance
+%   SD.SpatialUnit:     A string representing the SI units of distance
+%
+%   lumo.chn_sat:       Vector (or matrix) of logical values which indicate if a particular
+%                       channel is saturated during the recording. When this field is a 
+%                       matrix, the saturation flag is provided for every frame in the
+%                       recording, for more granular exclusion of data.
+%
+%   lumo.src_pwr:       Vector of source powers per channel.
+%
+%   lumo.chn_sort_perm: Permutation which maps from the re-indexed channel listing
+%                       constructed for NIRS back to the canonical indexing
 %
 %
 % See also LUMO_READ
@@ -194,6 +204,15 @@ SD.MeasList(:,2) = glch(:,3);           % Global detector index
 SD.MeasList(:,3) = 1;                   % Always one
 SD.MeasList(:,4) = glch(:,2);           % Global wavelength index
 
+% Build source powers
+%
+src_pwr = zeros(size(glch,1),1);
+for ci = 1:size(glch,1)
+    ch = enum.groups(gi).channels(ci);
+    src_node_idx = ch.src_node_idx;
+    src_node = enum.groups(gi).nodes(src_node_idx);
+    src_pwr(ci) = src_node.srcs(ch.src_idx).power;
+end
 
 % Build event (stimulus) maitrx
 %
@@ -274,9 +293,9 @@ if strcmp(sdstyle, 'flat')
 end
 
 % Add lumo extension variables
-nirs.lumoext.chn_sort_perm = perm;
-nirs.lumoext.chn_sat = data(gi).chn_dat;
-nirs.lumoext.src_powers = [];
+nirs.lumo.chn_sort_perm = perm;
+nirs.lumo.chn_sat = data(gi).chn_dat;
+nirs.lumo.src_pwr = src_pwr;
 
 end
 

@@ -85,6 +85,15 @@ try
     assert(isfield(lf_lo_landmarks, 'x'));
     assert(isfield(lf_lo_landmarks, 'y'));
     assert(isfield(lf_lo_landmarks, 'z'));
+    
+    % Restructure the layout fields to permit 2D/3D representations
+    for li = 1:length(lf_lo_landmarks)
+      lf_lo_landmarks(li).coords_3d.x = lf_lo_landmarks(li).x;
+      lf_lo_landmarks(li).coords_3d.y = lf_lo_landmarks(li).y;
+      lf_lo_landmarks(li).coords_3d.z = lf_lo_landmarks(li).z;
+    end
+    rmfield(lf_lo_landmarks, {'x', 'y', 'z'});
+    
   end    
 
   % Over each dock (first pass for sorting)
