@@ -42,7 +42,7 @@ for i = 1:length(lumo_sample_files)
   [p,n,e] = fileparts(lumo_sample_fn{i});
   snirffn = fullfile(p, [n '.snirf']);
   
-  ld.write_SNIRF(snirffn);
+  ld.write_SNIRF(snirffn, 'ordering', 'mne-nirs');
   
 end
 

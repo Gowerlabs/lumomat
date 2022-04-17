@@ -135,8 +135,10 @@ LUMO is a high-density, wearable, and modular instrument for diffuse optical tom
 
 In principle, the data produced in a DOT experiment is straightforward: a single measurement of intensity is made across every channel of the system many times per second, resulting in a big matrix of data. In practice, there is a significant amount of book-keeping required in order to make sense of the relationship between that big matrix of numbers and the physical geometry of the system.
 
-This is particularly true for LUMO, owing to its modular nature. The purpose of this package is to allow one to access, interpret, and export the data produced by LUMO, for the purposes of further analysis.
-
+This is particularly true for LUMO, owing to its modular nature. The purpose of this package is to:
+ - normalise various LUMO file formats, and file format versions to a common representation suitable for interpretation and analysis,
+ - allow export of the data in file formats used by common analysis packages.
+  
 
 # Nomenclature
 
@@ -151,7 +153,6 @@ Various terms are used throughout this guide and in the package itself. Many wil
  - *Channel*: a channel is formed from a single source-detector pair.
  - *Layout*: a layout describes the docks present in a group, and each of the optodes which belong to the dock. When a cap is built, a template layout is created which provides the positions of all docks in a group as measured on a suitable phantom. Subject specific layouts might be measured by the user (and may consist of a subset of the docks in the group).
  - *Frame*: a frame is a measurement of all active channels made at a single point in time.
-
 
 # Using lumomat
 
@@ -194,7 +195,7 @@ where `custom_layout` can be one of:
  - a structure matching that described in the layout section of the low-level API description, or, 
  - an JSON file following the syntax of the default layout file (contact Gowerlabs for details)
 
-For a custom layout to be usable, it must contain the locations of all docks for which nodes were present. It is acceptable therefore that only a subset of the docks are recorded, corresponding to those docks where nodes are present.
+For a custom layout to be usable it must contain the locations of all docks for which nodes were present. This may be a subset of the complete set of docks in a group, in the case that some are not occupied.
 
 All data export methods write additional metadata to, e.g., NIRS or SNIRF files which permit identification of the node and optode corresponding to each source or detector position. As such, it is also possible for the user to modify the positions using measured data after export.
 
@@ -293,7 +294,7 @@ ans =
 
 ## SNIRF output
 
-The [SNIRF file format](https://github.com/fNIRS/snirf) is a recent specification supported directly by a number of  analysis tools such as [Homer3](https://github.com/BUNPC/Homer3), [NIRS-toolbox](https://github.com/huppertt/nirs-toolbox), and [MNE-NIRS](https://github.com/mne-tools/mne-nirs). 
+The [SNIRF file format](https://github.com/fNIRS/snirf) is a recent specification supported directly by a number of modern analysis tools such as [MNE-NIRS](https://github.com/mne-tools/mne-nirs), [Fieldtrip](https://www.fieldtriptoolbox.org/), [Homer3](https://github.com/BUNPC/Homer3), and [NIRS-toolbox](https://github.com/huppertt/nirs-toolbox).
 
 SNIRF uses HDF5 as its underlying data storage method. HDF5 is a mature and stable file format which has been proven in numerous large scale experimental systems. The format has excellent support across multiple languages and on various platforms. *For these reason, we recommend the use of SNIRF as an archival format for LUMO data*.
 
@@ -303,31 +304,37 @@ Whilst SNIRF has some support for local indexing (similar to the canonical index
 
 Some optional output fields are formatted in a manner specific to the LUMO system:
 
- - `/nirs(i)/probe/sourceLabels`: source labels are formatted as "N\<node ID\>-\<name\>\<wavelength\>", for example, source A, wavelength 850, on node ID 7 will have the name "N7-A850".
- - `/nirs(i)/probe/detectorLabels`: detector labels are formatted as "N\<node ID\>-\<name\>", for example, detector 3, on node ID 28 will have the name "N28-3".
+ - `/nirs{i}/probe/sourceLabels`: source labels are formatted as "N\<node ID\>-\<name\>\<wavelength\>", for example, source A, wavelength 850, on node ID 7 will have the name "N7-A850".
+ - `/nirs{i}/probe/detectorLabels`: detector labels are formatted as "N\<node ID\>-\<name\>", for example, detector 3, on node ID 28 will have the name "N28-3".
 
-### LUMO metadata
+### LUMO stimulus data
+
+The SNIRF format expects stimuli to be be recorded as set of conditions, where each condition can have multiple trials which are recorded as a start time, a duration, and an amplitude. 
+
+The LUMO system does not explicitly record stimuli in this format, instead it provides for the recording of *event markers*, each of which consists of a string (the name of the event) and the time of occurrence. In a practical (f)NIRS experiment event markers may be used with a-priori knowledge of the stimulus duration, or different markers might be used to indicate the start and end of a stimulus condition.
+
+To encode event markers in the SNIRF stimulus format, all events which share the same marker are recorded as individual stimulus conditions. Every incidence of an event marker is recorded as a stimulus trial with the appropriate start time, a zero duration, and a unit amplitude. *The user is responsible for modifying the resultant data according to the specific experimental paradigm.*
+
+### LUMO additional metadata
 
 LUMO includes additional fields in the SNIRF metadata, alongside a number of auxiliary fields, as permitted by the SNIRF specification. The format of the metadata (and auxiliary data) is versioned as described. The current version is 1.0.0. All fields are located under `nirs(i)/metaDataTags/lumo/`:
 
  - `formatVersion`: the version of the `LUMO` metadata and auxiliary fields, specified as a string representation of a semantic version number.
- - `saturationFlag`: a vector of integers in which a non-zero value in the `i`th element indicates that saturation of the `i`th channel occurred at some time during the recording. Transient saturation can court during, e.g., movement, so this global flag can exclude many channels which are viable for the vast majority of the recording. Some versions of the LUMO software will export a time-series of saturation flags (see auxiliary measurements) to enable more granular channel filtering.
+ - `saturationFlags`: a vector of integers in which a non-zero value in the `i`th element indicates that saturation of the `i`th channel occurred at some time during the recording. Transient saturation can occur during, e.g., movement, so this global flag can exclude many channels which are viable for the vast majority of the recording. Some versions of the LUMO software will export a time-series of saturation flags (see auxiliary measurements) to enable more granular channel filtering.
  - `hubSerialNumber`: the serial number of the Hub to which the group was connected.
  - `groupName`: the name of group upon which the data was acquired (e.g. the cap serial number).
- - `canonicalMap`: is a flattened and abbreviated version of the canonical enumeration used internally, the values of this matrix can be used to index into the `nodes` and `docks` indexed groups. The values can also be used on their own in order to restore locality information (e.g. the nodes to which channels belong) from the global enumeration. The rows of the matrix are each 1-based indices:
-   1. source node index, used to index the `nodes(i)` structure
-   2. source dock index, used to index the `docks(i)` structure
+ - `canonicalMap`: is a flattened and abbreviated version of the canonical enumeration used internally, the values of this matrix can be used to index into the `nodes` and `docks` indexed groups. The values can also be used on their own in order to restore locality information (e.g. the nodes to which channels belong) from the global enumeration stored in the `probe` group. The rows of the matrix are each 1-based indices:
+   1. source node index, used to index the `nodes{i}` structure
+   2. source dock index, used to index the `docks{i}` structure
    3. source optode index, used to index the `docks(i)/optodePosXD` arrays
    4. source wavelength, in nm
    5. detector node index
    6. detector dock index 
    7. detector optode index
- - `nodes(i)`: an indexed group of information about nodes, such as their 'id' 
- - `docks(i)`: an indexed group of all docks in the layout. Note that unlike the global enumeration, which only contains information about the optode positions which are in use, the dock structure contains information about all the docks in the system, which may be useful for, e.g., visualisation. Each dock contains a number of datasets, including:
+ - `nodes{i}`: an indexed group of information about nodes, such as their `id`
+ - `docks{i}`: an indexed group of all docks in the layout. Note that unlike the global enumeration stored in the `probe` group, which only contains information about the optode positions which are in use, the dock structure contains information about all the docks in the system. Each dock contains a number of datasets, including:
    - information such as the optode `name`
-   - an array of optode locations in flattned two-dimenional and three-dimnsional co-ordinates `optodePosXD`
-
-
+   - an array of optode locations in flattened two-dimensional and three-dimensional co-ordinates `optodePosXD`
 
 
 ### LUMO auxiliary measurements
@@ -347,7 +354,7 @@ The following fields are TBC pending resolution of [queries]([]https://github.co
 
 ## NIRS output
 
-The NIRS file format is used by a number of analysis programs, including HOMER2. 
+The NIRS file format is used by analysis programs such as HOMER2. A number of processing pipelines and legacy analysis tools may most easily be used with a NIRS file, but we generally recommend that users choose the SNIRF format for data archival and analysis, where possible.
 
 To construct a NIRS structure and write a NIRS file:
 

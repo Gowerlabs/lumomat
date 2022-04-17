@@ -16,9 +16,11 @@ function write_SNIRF(snirffn,  enum, data, events, varargin)
 %
 %   Optional Parameters:
 %
-%   'draft_chdesc':         Use the draft modifications to the channel descriptor groups
-%                           which significant reduce file size and improve performance, as
-%                           discussed here: https://github.com/fNIRS/snirf/issues/103.
+%   'ordering': The default channel ordering follows the canonical order of the enumeration,
+%               tools such as MNE-NIRS require specific ordering. 
+%
+%               'mne-nirs':   Reorder output to group channels by optode, alternating
+%                             wavelengths.
 %
 %   Details:
 %
@@ -48,9 +50,21 @@ function write_SNIRF(snirffn,  enum, data, events, varargin)
 %%% TODO
 %
 % Add details of the additional LUMO specific fields
-% Add global saturation flags
 % Add temporal flags
 %
+% Implement draft channel description format:
+%
+%   'draft_chdesc':         Use the draft modifications to the channel descriptor groups
+%                           which significant reduce file size and improve performance, as
+%                           discussed here: https://github.com/fNIRS/snirf/issues/103.
+
+% Get optional inputs
+p = inputParser;
+expected_styles = {'mne-nirs'};
+addOptional(p, 'ordering', [], @(x) any(validatestring(x, expected_styles)));
+parse(p, varargin{:})
+ordering = p.Results.ordering;
+
 
 ng = length(enum.groups);
 
@@ -79,9 +93,6 @@ write_var_string(fid, '/formatVersion', '1.0');
 %
 for gidx = 1:ng
   
-  % We use a single data block
-  bi = 1;
-  
   % Build the global spectroscopic mapping
   %
   try
@@ -91,10 +102,21 @@ for gidx = 1:ng
     rethrow(e)
   end
   
+  % Build permutation for ordering
+  if ~isempty(ordering)
+    [~, chn_perm] = sortrows(glch, [1 3 2]);
+  else
+    chn_perm = [];
+  end
+    
   % Create NIRS root
   % /nirs{i}
   %
-  nirs_group = create_group(fid, ['nirs' num2str(gidx)]);
+  if ng > 1
+    nirs_group = create_group(fid, ['nirs' num2str(gidx)]);
+  else
+    nirs_group = create_group(fid, ['nirs']);
+  end
   
   % Create metadata
   % /nirs{i}/metaDataTags
@@ -152,6 +174,10 @@ for gidx = 1:ng
     canmap(:,7) = det.optode_idx;   % Optode index
   end
   
+  if ~isempty(chn_perm)
+    canmap = canmap(chn_perm,:);
+  end
+  
   write_int32(lumo_md_group, 'canonincalMap', canmap);
     
   %% Output abbreviated nodal enumeration
@@ -192,37 +218,62 @@ for gidx = 1:ng
   H5G.close(lumo_md_group);  
   H5G.close(nirs_meta_group);
   
-  % Create data block
+  %% Create data block
   % /nirs{i}/data{i}
   %
-  nirs_data_group = create_group(nirs_group, ['data' num2str(bi)]);
-  write_chn_dat_block(nirs_data_group, data(gidx).chn_dat);       % Write data /nirs{i}/data1
-  write_double(nirs_data_group, 'time', [0 data(gidx).chn_dt]);   % Write /nirs{i}/time
-  write_measlist(nirs_data_group, gidx, enum, glch);              % Write measurementList 
+  nirs_data_group = create_group(nirs_group, 'data1');                % Note: single data block
+  write_chn_dat_block(nirs_data_group, chn_perm, data(gidx).chn_dat); % Write data /nirs{i}/data1
+  write_double(nirs_data_group, 'time', [0 data(gidx).chn_dt]);       % Write /nirs{i}/time
+  write_measlist(nirs_data_group, chn_perm, gidx, enum, glch);        % Write measurementList 
   H5G.close(nirs_data_group);
   
-  % Create probe block
+  %% Create probe block
   % /nirs{i}/probe
   %
   nirs_probe_group = create_group(nirs_group, 'probe');
   write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl);
   H5G.close(nirs_probe_group);
   
-  % Create stimulus group
+  %% Create stimulus group
   %
-  warning('Not writing stimulus');
+  if ~isempty(events)
+    
+    % Find all of the conditions and their indices    
+    [markers, ~, marker_perm] = unique({events.mark});
+    nm = length(markers);
+    
+    for i = 1:nm
+      
+      % Create stimulus group
+      % /nirs{i}/stim{j}
+      
+      nirs_stim_group = create_group(nirs_group, ['stim' num2str(i)]);
+      write_var_string(nirs_stim_group, 'name', markers{i});
+      
+      marker_idx = find(marker_perm == i);
+      ne = length(marker_idx);
+      
+      stim_data = zeros(ne,3);
+      stim_data(:,1) = marker_idx;
+      stim_data(:,2) = 0;
+      stim_data(:,3) = 1;
+      write_double(nirs_stim_group, 'data', stim_data);
+      
+      H5G.close(nirs_stim_group);
+      
+    end
+    
+  end
 
   % Create aux group
   %
+  
   %%% TODO
   %
-  % Add MPU
-  % Add temperature
-  % Add saturation
-  warning('Not writing aux data');
-  
-
-    
+  % Add optional MPU
+  % Add optional temperature
+  % Add optional per-frame saturation
+     
   % Close root group
   H5G.close(nirs_group);
     
@@ -234,9 +285,15 @@ end
 end
 
 
-function write_measlist(nirs_data_group, gi, enum, glch)
+function write_measlist(nirs_data_group, chn_perm, gi, enum, glch)
 
   nch = size(glch,1);
+  
+  % Rather than special case, we'll just write out a standard permutation vector, because
+  % we're going to operate over this in a loop anyway.
+  if isempty(chn_perm)
+    chn_perm = 1:nch;
+  end
  
   for ci = 1:nch
     
@@ -246,14 +303,14 @@ function write_measlist(nirs_data_group, gi, enum, glch)
     % glch(ci, 2) -> global wavelength index of channel ci
     % glch(ci, 3) -> global detector index of channel ci
 
-    write_int32(nirs_mli_group, 'sourceIndex', glch(ci,1));
-    write_int32(nirs_mli_group, 'detectorIndex', glch(ci,3));
-    write_int32(nirs_mli_group, 'wavelengthIndex', glch(ci,2));
+    write_int32(nirs_mli_group, 'sourceIndex', glch(chn_perm(ci),1));
+    write_int32(nirs_mli_group, 'detectorIndex', glch(chn_perm(ci),3));
+    write_int32(nirs_mli_group, 'wavelengthIndex', glch(chn_perm(ci),2));
     write_int32(nirs_mli_group, 'dataType', int32(1));
     write_int32(nirs_mli_group, 'dataTypeIndex', int32(1));
     
     % Add source power (this has to be acquired via the canonical enumeration)
-    ch = enum.groups(gi).channels(ci);
+    ch = enum.groups(gi).channels(chn_perm(ci));
     src_node_idx = ch.src_node_idx;
     src_node = enum.groups(gi).nodes(src_node_idx);
     src_pwr = src_node.srcs(ch.src_idx).power;
@@ -263,8 +320,8 @@ function write_measlist(nirs_data_group, gi, enum, glch)
     % chosen to export in a global format. We will instead output this in our global to
     % local metadata, which is more consistent with the intent of the specification.
     %
-    % write_int32(nirs_mli_group, 'sourceModuleIndex', enum.groups(gi).channels(ci).src_node_idx);  
-    % write_int32(nirs_mli_group, 'detectorModuleIndex', enum.groups(gi).channels(ci).det_node_idx);
+    % write_int32(nirs_mli_group, 'sourceModuleIndex', enum.groups(gi).channels(chn_perm(ci)).src_node_idx);  
+    % write_int32(nirs_mli_group, 'detectorModuleIndex', enum.groups(gi).channels(chn_perm(ci)).det_node_idx);
            
   end
   
@@ -370,15 +427,10 @@ end
 % - When a vector (either row or column) is provided, a rank 1 dataset is written
 % - When a matrix is provided, it is transposed before write
 
-function write_chn_dat_block(nirs_data_group, data)
+function write_chn_dat_block(nirs_data_group, chn_perm, data)
 
 h5_data_size = fliplr(size(data));
 h5_data_rank = ndims(data);
-
-%h5_chunk_size = fliplr([size(data,1) 1]);
-h5_chunk_size = fliplr([1 size(data,2)]);
-
-h5_dflt_lvl = 7;
 
 tp = H5T.copy('H5T_IEEE_F32LE');                                  % Type desc.
 ds = H5S.create_simple(h5_data_rank, h5_data_size, h5_data_size); % Dataspace
@@ -388,6 +440,10 @@ pl = H5P.create('H5P_DATASET_CREATE');                            % Porperty lis
 % data time series without chunking and compression (typical ratios appear to be around 1.2
 % when chunking along the time axis).
 %
+% h5_chunk_size = fliplr([size(data,1) 1]);
+% h5_chunk_size = fliplr([1 size(data,2)]);
+% h5_dflt_lvl = 7;
+%
 % H5P.set_chunk(pl, h5_chunk_size);           % Set chunk size to be one frame
 % H5P.set_deflate(pl, h5_dflt_lvl);           % Set deflate compression
 
@@ -395,7 +451,11 @@ pl = H5P.create('H5P_DATASET_CREATE');                            % Porperty lis
 dset = H5D.create(nirs_data_group, 'dataTimeSeries', tp, ds, pl);
 
 % Write
-H5D.write(dset, tp, 'H5S_ALL', 'H5S_ALL', 'H5P_DEFAULT', data);
+if ~isempty(chn_perm)
+  H5D.write(dset, tp, 'H5S_ALL', 'H5S_ALL', 'H5P_DEFAULT', data(chn_perm,:));
+else
+  H5D.write(dset, tp, 'H5S_ALL', 'H5S_ALL', 'H5P_DEFAULT', data);
+end
 
 % Clean up
 H5P.close(pl);
