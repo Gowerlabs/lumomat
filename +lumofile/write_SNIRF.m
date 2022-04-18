@@ -1,4 +1,4 @@
-function [snirf] = write_SNIRF(snirffn,  enum, data, events, varargin)
+function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 % LUMOFILE.WRITE_SNIRF Write LUMO data to SNIRF format
 %
 %   [snirf] = LUMOFILE.WRITE_SNIRF(snirffn, enum, data, events)
@@ -16,11 +16,17 @@ function [snirf] = write_SNIRF(snirffn,  enum, data, events, varargin)
 %
 %   Optional Parameters:
 %
-%   'ordering': The default channel ordering follows the canonical order of the enumeration,
-%               tools such as MNE-NIRS require specific ordering. 
+%   'style':    Certain analysis tools have specific expectations regarding channel
+%               ordering, landmark naming, etc. Selecting a specific style will modify the
+%               output structures to match the requirements listed below.
 %
-%               'mne-nirs':   Reorder output to group channels by optode, alternating
-%                             wavelengths.
+%               'mne-nirs':   1. Reorder output to group channels by optode, alternating
+%                                wavelengths.
+%                             2. Rename landmarks: Al -> LPA, Ar -> RPA, Nasion -> NASION
+%
+%   'source':   A descriptive string describing the source of the data, which will be
+%               encoded in the metadata.
+%
 %   Returns:
 %
 %     snirf:    A representaiton of the SNIRF file in structure format.
@@ -63,10 +69,10 @@ function [snirf] = write_SNIRF(snirffn,  enum, data, events, varargin)
 
 % Get optional inputs
 p = inputParser;
-expected_styles = {'mne-nirs'};
-addOptional(p, 'ordering', [], @(x) any(validatestring(x, expected_styles)));
+expected_styles = {'standard', 'mne-nirs'};
+addOptional(p, 'style', 'standard', @(x) any(validatestring(x, expected_styles)));
 parse(p, varargin{:})
-ordering = p.Results.ordering;
+style = p.Results.style;
 
 
 ng = length(enum.groups);
@@ -106,10 +112,13 @@ for gidx = 1:ng
   end
   
   % Build permutation for ordering
-  if ~isempty(ordering)
-    [~, chn_perm] = sortrows(glch, [1 3 2]);
-  else
-    chn_perm = [];
+  switch style
+    case 'standard' 
+      chn_perm = [];
+    case 'mne-nirs'
+        [~, chn_perm] = sortrows(glch, [1 3 2]);    
+    otherwise
+        error('Invalid style selection, consult help');
   end
     
   % Create NIRS root
@@ -240,7 +249,7 @@ for gidx = 1:ng
   % /nirs{i}/probe
   %
   nirs_probe_group = create_group(nirs_group, 'probe');
-  snirf.nirs(gidx).probe = write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl);
+  snirf.nirs(gidx).probe = write_probe(nirs_probe_group, style, enum, gidx, glsrc, gldet, glwl);
   H5G.close(nirs_probe_group);
   
   %% Create stimulus group
@@ -337,7 +346,7 @@ function [ml] = write_measlist(nirs_data_group, chn_perm, gi, enum, glch)
 end
 
   
-function [probe] = write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl)
+function [probe] = write_probe(nirs_probe_group, style, enum, gidx, glsrc, gldet, glwl)
   
   probe.wavelengths = write_double(nirs_probe_group, 'wavelengths', double(glwl));
    
@@ -414,6 +423,13 @@ function [probe] = write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl)
       landmarkLabels{i} = landmark.name;
       landmarkPos3D(i, 1:3) = [landmark.coords_3d.x landmark.coords_3d.y landmark.coords_3d.z];
       landmarkPos3D(i, 4) = i;
+    end
+    
+    switch style
+        case 'mne-nirs'
+          landmarkLabels = strrep(landmarkLabels, 'Al', 'LPA');
+          landmarkLabels = strrep(landmarkLabels, 'Ar', 'RPA');
+          landmarkLabels = strrep(landmarkLabels, 'Nasion', 'NASION');
     end
     
     probe.landmarkPos3D = write_double(nirs_probe_group, 'landmarkPos3D', double(landmarkPos3D));

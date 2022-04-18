@@ -1,24 +1,10 @@
 function [enum, data, events] = read_lufr(lufrfn, varargin)
-%LOADLUFR Load DOT data from LUFR formatted LUMO data.
-%   LOADLUFR is used to load data from the Gowerlabs internal LUFR format
-%   emitted by internal lumo development tools.
+% LUMOFILE.READ_LUFR Read a LUFR file from disk
 %
-%   Return values
+% [enum, data, events] = LUMOFILE.READ_LUMO(filename) 
 %
-%   function [infoblks, ... % Free-form information fields
-%             enum, ...     % JSON format enumeration from the back end
-%             tchdat, ...   % The time increment of a single data frame (1/fps)
-%             chdat, ...    % Channel data (channels x frames)
-%             satflag, ...  % Saturation flag (channels x frames)
-%             tmpdat, ...   % Tile internal temperatures (tiles x frames)
-%             vindat, ...   % Tile input voltages (tiles x frames)
-%             srcpwr, ...   % Source powers (nodes x wavelengths x frames)
-%             evtim, ...    % Time of each event (ms)
-%             evstr, ...    % Associated string for each marked event
-%             tmpudat, ...  % The time increment of a single MPU frame
-%             gyrdat, ...   % Gyroscope data (nodes x dim x meas/frame x frame), units of degrees per second
-%             accdat] ...   % Accellerometer data (nodes x dim x meas/frame x frame), units of g
-%   = loadlufr(fn, varargin)  
+% LUMOFILE.READ_LUFR is used to read data the LUFR file format emitted by Gowerlabs
+% development tools for LUMO. 
 %
 %   Parameters
 %
@@ -52,6 +38,90 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %                When using this option, one must index into the enumeration data using the
 %                returned chperm array to map from the appropriate elements of the output
 %                data to the global enumeration.
+%
+%   Returns:
+%
+%     enum:   An enumeration of the system containing:
+%
+%             enum.hub:     a description of the LUMO Hub used for recording
+%             enum.groups:  an array of structures describing each group (cap) connected.
+%                           LUMO files currently only store a single group, so this array
+%                           should be of length 1. The form of this structure is described
+%                           further below.
+%
+%     data:   An array of structures of data form each group in the enumeration.
+%
+%     events: An array of strcutures details events recorded during recording.
+%
+%   The enumeration (enum)
+%
+%   The canonical representation of a LUMO system uses a node local indexing format for its
+%   channel descriptors. For example, a channel can be defined as the tuple:
+%
+%   (src_node_idx(j), src_idx(k), det_node_idx(l), det_idx(m))
+%
+%   This informaiton is exposed in the retuned enumeration:
+% 
+%   >> ch = enum.groups(gi).channels(98)
+% 
+%   ch = 
+% 
+%   struct with fields:
+% 
+%     src_node_idx: 1
+%          src_idx: 2
+%     det_node_idx: 1
+%          det_idx: 2
+%
+%   One may inspect the nature of the sources or detectors with reference to the node to 
+%   which it belongs, e.g., the wavelength of a source index 2 on node index 1:
+%
+%   nodes = enum.groups(gi).nodes;
+%   wl = nodes(ch.src_node_idx).srcs(ch.src_idx).wl
+% 
+%   wl =
+% 
+%      735
+%
+%   The physical location of a source is determined by its association with an optode:
+%
+%   >> optode_idx = nodes(ch.src_node_idx).srcs(ch.src_idx).optode_idx
+%
+%   optode_idx =
+%
+%   6
+%
+%   And the actual physical location of an optode is determined by an associated layout
+%   structure. The docks of a layout are linked to enumeration by the node ID. For
+%   convenience, the layout structure contains a map from the ID to the index:
+%
+%   layout = enum.groups(gi).layout;
+%   node_id = nodes(ch.src_node_idx).id;
+% 
+%   >> optode = layout.docks(layout.dockmap(node_id)).optodes(optode_idx)
+% 
+%   optode = 
+% 
+%     struct with fields:
+% 
+%         name: 'B'
+%     coords_2d: [1×1 struct]
+%     coords_3d: [1×1 struct]
+% 
+%
+%   Note that a 'node' is synonymous with a LUMO tile, or a module in the nomencalature of
+%   other fNIRS/DOT formats.
+%
+%   The data:
+%
+%   The primary purpose of the data structure is to provide the channel intensity data and
+%   fixed associated metadata.
+%
+%   data.nchns:     (nc) the number of channels in the recording of this group
+%   data.nframes:   (nf) the number of frames in the recording of this group
+%   data.chn_fps:   the number of frames per second
+%   data.chn_dt:    the length of a frame in milliseconds
+%   data.chn_dat:   [nc x nt] matrix of nc channel intensity measurements over nf frames
 %
 %
 %   (C) Gowerlabs Ltd., 2022
@@ -358,7 +428,6 @@ else
     
 end
 
-
 % Compute size of the output data an allocate
 n_nodes  = sizeparam_ref(3);
 n_schans = sizeparam_ref(4);
@@ -542,15 +611,18 @@ accdat = reshape(accdat,[dim(1) dim(2) dim(3)*dim(4)]);
 tmpudat = 10e-3; %Always at 100Hz = 1/10ms
 
 
-%%% Restructure the enumeration data
+%%% Restructure the enumeration
+%
+% The loaded enumeration is direct from the stack and must be reorganised and clenaed to 
+% conform to the canonical format.
 %
 
-% Redo the enumeration id
+% Rework the group ID to a hex string and descriptive name
 [uid_hex, uid_name] = lumofile.norm_gid(enum.groups(gidx + 1).id);
 enum.groups(gidx + 1).id = uid_hex;
 enum.groups(gidx + 1).name = uid_name;
 
-% One-index everthing
+% Convert all indices to one-based for MATLAB
 nc = length(enum.groups(gidx + 1).channels);
 for ci = 1:nc
   enum.groups(gidx + 1).channels(ci).det_idx = enum.groups(gidx + 1).channels(ci).det_idx + 1;
@@ -566,14 +638,46 @@ for ci = 1:nc
   
 end
 
-% Redo the node revision
+% Remove extraneous non-canonical fields from the channels structure
+enum.groups(gidx + 1).channels = rmfield(enum.groups(gidx + 1).channels, ...
+  {'acq_offset_us', 'acq_row',...
+   'det_node_id', 'det_optode_idx', 'det_optode_name', ...
+   'src_node_id', 'src_optode_idx', 'src_optode_name', 'src_wl'});
+
+% Modify the nodes
 nd = length(enum.groups(gidx + 1).nodes);
 for ni = 1:nd
+  % Convert node firmware revision to semver string, rename rev -> revision,
   fwmajor = enum.groups(gidx +1).nodes(ni).fwmajor;
   fwminor = enum.groups(gidx +1).nodes(ni).fwminor;
   fwpatch = enum.groups(gidx +1).nodes(ni).fwpatch;
-  enum.groups(gidx +1).nodes(ni).fwver = sprintf('%d.%d.%d', fwmajor, fwminor, fwpatch);
+  enum.groups(gidx + 1).nodes(ni).fwver = sprintf('%d.%d.%d', fwmajor, fwminor, fwpatch);
+  
+  % Remove extraneous fields
+  enum.groups(gidx + 1).nodes(ni).optodes = rmfield(enum.groups(gidx + 1).nodes(ni).optodes, {'rho', 'theta'});
+  
+  % Change optode naming from stack '0', '1', '2', '3', to canonical '1', '2', '3', '4'.
+  no = length(enum.groups(gidx + 1).nodes(ni).optodes);
+  for j = 1:no
+    
+    switch enum.groups(gidx + 1).nodes(ni).optodes(j).name
+      case '0'
+        enum.groups(gidx + 1).nodes(ni).optodes(j).name = '1';
+      case '1'
+        enum.groups(gidx + 1).nodes(ni).optodes(j).name = '2';
+      case '2'
+        enum.groups(gidx + 1).nodes(ni).optodes(j).name = '3';
+      case '3'
+        enum.groups(gidx + 1).nodes(ni).optodes(j).name = '4';
+    end
+    
+  end
+  
 end
+
+% Remove extraneous non-canonical fields from the nodes structure
+enum.groups(gidx + 1).nodes = rmfield(enum.groups(gidx + 1).nodes, ...
+  {'busid', 'fwmajor', 'fwminor', 'fwpatch', 'idx', 'scqid', 'temp', 'type', 'vin'});
 
 % Insert the source power into the nodal enumeration
 %
@@ -592,6 +696,7 @@ for i = 1:size(srcpwr,3)
   
 end
 
+% Insert as described
 nd = length(enum.groups(gidx + 1).nodes);
 for ni = 1:nd
   node = enum.groups(gidx +1).nodes(ni);
@@ -599,8 +704,8 @@ for ni = 1:nd
   for qi = 1:nq
     src = enum.groups(gidx +1).nodes(ni).srcs(qi);
     
-    %%% TODO: Wavelengths are hard-coded here, which is incorrect and should be asserted
-    %%% against.
+    % TODO: Wavelengths are hard-coded here, which is incorrect and should be asserted
+    %       against at very least.
     if ni == 1
       if nq == 1
         warning('Assertion required on wavelengths for source power assignment');
@@ -617,12 +722,10 @@ for ni = 1:nd
   
 end
 
-
-
-
-
-
-%%%% Add the layout information
+%%% Add the layout
+%
+% LUFR files do not contain embedded layouts, so we take it from the user, or complain.
+%
 
 % Load layout or take from the user
 if isempty(layout_override)
@@ -646,7 +749,7 @@ else
       enum.groups(gidx + 1).layout = layout_raw;
       fprintf('LUFR file using user-specified layout file\n');
     catch e
-       fprintf('An error occurred loading the specified layout file %s', layout_override);
+       fprintf('An error occurred loading the specified layout file %s\n', layout_override);
        rethrow e
     end
       
@@ -661,20 +764,13 @@ end
 
 %%% TODO: Add layout validation
 
-% Handle channel permutation when filter is used, pending design decision and addition of
-% channel filtering to the LUMO file input.
-%
-% chperm
-
-%%% Build event output structure
-%
+% Build event output structure
 ne = length(evtim);
 for i = 1:ne
   events(i) = struct('mark', convertStringsToChars(evstr{i}), 'timestamp', evtim(i));
 end
 
-%%% Build data output structure
-%
+% Build data output structure
 data = struct('chn_dat', chdat, ...
               'chn_dt', tchdat*1e3, ...
               'chn_fps', fps, ...
