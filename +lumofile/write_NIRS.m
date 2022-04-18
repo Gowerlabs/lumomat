@@ -226,7 +226,7 @@ end
 if ~isempty(events)
   
   for i = 1:length(events)
-    timeStamp(i) = events(i).ts;
+    timeStamp(i) = events(i).timestamp;
     eventStr{i} = events(i).mark;
   end
   

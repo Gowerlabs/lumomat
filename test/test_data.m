@@ -167,7 +167,7 @@ for i = 1:length(lumo_sample_files)
   for cidx = 1:length(ld.enum.groups.channels)
     
     % Get canonical channel indices
-    lidx = nirs_test.lumoext.chn_sort_perm(cidx);
+    lidx = nirs_test.lumo.chn_sort_perm(cidx);
     
     % Get the channel information
     ld_info = ld.chn_info(lidx);

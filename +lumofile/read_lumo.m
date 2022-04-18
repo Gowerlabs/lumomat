@@ -133,7 +133,6 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 
 ts_load = tic;
 
-
 % Parse inputs
 p = inputParser;
 addParameter(p, 'ignore_memory', false, @islogical);
@@ -312,7 +311,7 @@ if ~ismember(lf_known_ver, lf_ver_num, 'rows')
     lf_dir, lf_ver_num(1), lf_ver_num(2), lf_ver_num(3));
 else
   fprintf('LUMO file version %d.%d.%d\n', ...
-    lf_dir, lf_ver_num(1), lf_ver_num(2), lf_ver_num(3));
+    lf_ver_num(1), lf_ver_num(2), lf_ver_num(3));
 end
 
 % 2c. Get filenames of additional metadata and check existence
@@ -565,7 +564,7 @@ else
   end
   
   % Sort by timestamp
-  [~, perm] = sort([events.ts]);
+  [~, perm] = sort([events.timestamp]);
   events = events(perm);
 
 end
@@ -666,7 +665,7 @@ try
     % Normalise the UID to a hex string and a name
     [uid_hex, uid_name] = lumofile.norm_gid(enum_raw.Hub.Group(1).uid);
     enum.groups(gi).id = uid_hex;
-    enum.groups(gi).name = group_name;
+    enum.groups(gi).name = uid_name;
     
 
     % Over each node (first pass for sorting)
