@@ -153,16 +153,16 @@ function [cs_optode, opt_idx] = trans_optode_desc(lf_optode)
 switch lf_optode.optode_id
   case 'optode_1'
     opt_idx = 1;
-    opt_name = '0';
+    opt_name = '1';
   case 'optode_2'
     opt_idx = 2;
-    opt_name = '1';
+    opt_name = '2';
   case 'optode_3'
     opt_idx = 3;
-    opt_name = '2';
+    opt_name = '3';
   case 'optode_4'
     opt_idx = 4;
-    opt_name = '3';
+    opt_name = '4';
   case 'optode_a'
     opt_idx = 5;
     opt_name = 'A';

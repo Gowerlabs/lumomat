@@ -300,6 +300,73 @@ SNIRF uses HDF5 as its underlying data storage method. HDF5 is a mature and stab
 
 Whilst SNIRF has some support for local indexing (similar to the canonical indexing used internally), this may not be the case for tools which use the format. As such, we export to SNIRF using global spectroscopic indexing, as described previously. We also include metadata to permit easy mapping of the channels of the system back to a local format, such that it is straightforward to determine, e.g., the nodes involved in a given channel.
 
+To construct a SNIRF structure and write a SNIRF file:
+
+```
+snirf = data.write_SNIRF(filename);
+```
+
+The returned structure represents the contents of the SNIRF output file as a nested MATLAB structure, where indexed groups are replaced with arrays of structures. This data structure can be used directly if a globally indexed spectroscopic representation is of use.
+
+Certain analysis tools have specific expectations regarding channel ordering, landmark naming, etc. Selecting a specific style will modify the output structures to match the requirements. Supported styles are listed in online help. For example, to export to an MNE-NIRS compatible file:
+
+```
+snirf = data.write_SNIRF(filename, 'style', 'mne-nirs');
+```
+
+We can examine the root of the first measurement group `nirs{1}`:
+
+```
+>> snirf.nirs(1)
+
+ans = 
+
+  struct with fields:
+
+    metaDataTags: [1×1 struct]
+            data: [1×1 struct]
+           probe: [1×1 struct]
+            stim: [1×4 struct]
+```
+
+Look at the metadata:
+
+```
+>> snirf.nirs(1).metaDataTags
+
+ans = 
+
+  struct with fields:
+
+           SubjectID: 'Subject Unknown'
+     MeasurementDate: 'unknown'
+     MeasurementTime: 'unknown'
+          LengthUnit: 'mm'
+            TimeUnit: 'ms'
+       FrequencyUnit: 'Hz'
+     sourcePowerUnit: 'percent'
+    ManufacturerName: 'Gowerlabs'
+                Mode: 'LUMO'
+                lumo: [1×1 struct]
+```
+
+Or examine the nature of the measurement list structure:
+
+```
+>> snirf.nirs(1).data(1).measurementList
+
+ans = 
+
+  1×384 struct array with fields:
+
+    sourceIndex
+    detectorIndex
+    wavelengthIndex
+    dataType
+    dataTypeIndex
+    sourcePower
+```
+
 ### LUMO conventions
 
 Some optional output fields are formatted in a manner specific to the LUMO system:
@@ -326,11 +393,12 @@ LUMO includes additional fields in the SNIRF metadata, alongside a number of aux
  - `canonicalMap`: is a flattened and abbreviated version of the canonical enumeration used internally, the values of this matrix can be used to index into the `nodes` and `docks` indexed groups. The values can also be used on their own in order to restore locality information (e.g. the nodes to which channels belong) from the global enumeration stored in the `probe` group. The rows of the matrix are each 1-based indices:
    1. source node index, used to index the `nodes{i}` structure
    2. source dock index, used to index the `docks{i}` structure
-   3. source optode index, used to index the `docks(i)/optodePosXD` arrays
-   4. source wavelength, in nm
-   5. detector node index
-   6. detector dock index 
-   7. detector optode index
+   3. source optode index, used to index the `docks{i}
+   4. /optodePosXD` arrays
+   5. source wavelength, in nm
+   6. detector node index
+   7. detector dock index 
+   8. detector optode index
  - `nodes{i}`: an indexed group of information about nodes, such as their `id`
  - `docks{i}`: an indexed group of all docks in the layout. Note that unlike the global enumeration stored in the `probe` group, which only contains information about the optode positions which are in use, the dock structure contains information about all the docks in the system. Each dock contains a number of datasets, including:
    - information such as the optode `name`

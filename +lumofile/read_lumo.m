@@ -126,7 +126,6 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %%% TODOS
 %
 % - Form a node permuation vector which maps from node indices to reduced (dock present)
-% - Consder locking events to frame indices
 % - Perform validation of cap UID in layout file
 % - Consider reduced layout mappings and layout validation
 % - Optode filtering, and skip data option to allow inspection without inflection
@@ -137,8 +136,8 @@ ts_load = tic;
 
 % Parse inputs
 p = inputParser;
-addOptional(p, 'ignore_memory', false, @islogical);
-addOptional(p, 'layout', []);
+addParameter(p, 'ignore_memory', false, @islogical);
+addParameter(p, 'layout', []);
 parse(p, varargin{:});
 
 ignore_memory = p.Results.ignore_memory;
@@ -196,7 +195,7 @@ else
     
     try
       enum.groups(gi).layout = lumofile.read_layout(layout_override);
-      fprintf('LUMO file (%s) using user-specified layout file\n', lf_dir);
+      fprintf('LUMO file using user-specified layout file\n');
     catch e
        fprintf('An error occurred loading the specified layout file %s', layout_override);
        rethrow e
@@ -204,7 +203,7 @@ else
       
   elseif isstruct(layout_override)
     enum.groups(gi).layout = layout_override;
-    fprintf('LUMO file (%s) using user-specified layout structure (not validated)\n', lf_dir);
+    fprintf('LUMO file using user-specified layout structure (not validated)\n');
   else
     error('The specified layout is neither a layout filename nor structure, consult help');
   end
@@ -212,8 +211,8 @@ else
 end
 
 if ~isempty(enum.groups(gi).layout)
-  fprintf('LUMO file (%s) assigned layout (group %d) contains %d docks, %d optodes\n', ...
-    lf_dir, gi, length(enum.groups(gi).layout.docks), length(enum.groups(gi).layout.docks)*7);
+  fprintf('LUMO file assigned layout (group %d) contains %d docks, %d optodes\n', ...
+    gi, length(enum.groups(gi).layout.docks), length(enum.groups(gi).layout.docks)*7);
 end
 
 % Load intensity files
@@ -312,7 +311,7 @@ if ~ismember(lf_known_ver, lf_ver_num, 'rows')
   error('LUMO file (%s): version %d.%d.%d is not supported by this software version\n', ...
     lf_dir, lf_ver_num(1), lf_ver_num(2), lf_ver_num(3));
 else
-  fprintf('LUMO file (%s): version %d.%d.%d\n', ...
+  fprintf('LUMO file version %d.%d.%d\n', ...
     lf_dir, lf_ver_num(1), lf_ver_num(2), lf_ver_num(3));
 end
 
@@ -349,7 +348,7 @@ if (lf_ver_num(1) < 1) && (lf_ver_num(2) > 1)
   % On file versions >= 0.2.0 the layout file will be specified, or missing
   lf_meta_lo_fn = optfield(lf_meta_fns, 'layout_file');
   if isempty(lf_meta_lo_fn)
-    fprintf('LUMO file (%s) does not contain cap layout information\n', lf_dir);
+    fprintf('LUMO file does not contain layout information\n');
     lf_has_layout = false;
   else
     lf_has_layout = true;
@@ -557,7 +556,7 @@ else
         ts = lf_events{ii}.Timestamp;
       end
 
-      events(ii) = struct('mark', lf_events{ii}.name, 'ts', ts);
+      events(ii) = struct('mark', lf_events{ii}.name, 'timestamp', ts);
 
     end
   catch e
@@ -571,7 +570,7 @@ else
 
 end
 
-fprintf('LUMO file (%s) events file contains %d entries\n', lf_dir, length(events));
+fprintf('LUMO file events file contains %d entries\n', length(events));
 
 end
 
@@ -606,11 +605,6 @@ enum = struct();
 %
 try
   
-  %%% TODO: Check against lufr format for canonicalisation
-  %%%
-  %%%       Aim here is to match up the enumeration with the way the library stores its 
-  %%%       metadta internally, with a view to linking
-  %%%       up with existing work on loadlufr, etc.
   if isfield(enum_raw.Hub, 'firmware_version')
     temp = enum_raw.Hub.firmware_version;
     if temp ~= ""
@@ -636,7 +630,7 @@ try
   if isfield(enum_raw.Hub, 'hub_serial_number')
     temp = enum_raw.Hub.hub_serial_number;
     if temp ~= -1
-      enum.hub.sn = string(temp);
+      enum.hub.serial = string(temp);
     else
       enum.hub.sn = '';
     end
@@ -669,23 +663,11 @@ try
     
     enum.groups(gi) = struct();
     
-    % Normalise the UID to a hex string
-    uid_temp = enum_raw.Hub.Group(1).uid;
-    if isnumeric(uid_temp)
-      uid_temp =  ['0x' lower(dec2hex(12342352532, 8))];
-    end
-    enum.groups(gi).uid = uid_temp;
-    
-    % Now form the name by converting UID to string
-    uid_temp = str2num(uid_temp);
-    
-    if(uid_temp > 20155392)
-      group_name = dec2base(uid_temp, 36);
-    else
-      group_name = sprintf('GA%05d', uid_temp);
-    end 
+    % Normalise the UID to a hex string and a name
+    [uid_hex, uid_name] = lumofile.norm_gid(enum_raw.Hub.Group(1).uid);
+    enum.groups(gi).id = uid_hex;
     enum.groups(gi).name = group_name;
-   
+    
 
     % Over each node (first pass for sorting)
     nn = length(enum_raw.Hub.Group(gi).Node);
@@ -702,7 +684,7 @@ try
       
       cs_node = struct(...
         'id',       enum_raw.Hub.Group(gi).Node{ni}.node_id, ...
-        'revision', enum_raw.Hub.Group(gi).Node{ni}.revision_id, ...
+        'rev',      enum_raw.Hub.Group(gi).Node{ni}.revision_id, ...
         'fwver',    enum_raw.Hub.Group(gi).Node{ni}.firmware_version);
       
       %%% TODO: Add checks described below
@@ -886,8 +868,8 @@ for ci = 1:lf_nchans
   
 end
 
-fprintf('LUMO file (%s) enumeration contains %d tiles, %d channels\n', ...
-  lf_dir, length(enum.groups(gi).nodes), length(enum.groups(gi).channels));
+fprintf('LUMO file enumeration contains %d tiles, %d channels\n', ...
+  length(enum.groups(gi).nodes), length(enum.groups(gi).channels));
 
 
 dataparams = struct('nchns', lf_nchans, ...
@@ -910,16 +892,16 @@ function cs_opt = gen_optode_desc(io_idx, lf_dir)
 
 switch io_idx
   case 1
-    optode_name = '0';
-    optode_type = 'D';
-  case 2
     optode_name = '1';
     optode_type = 'D';
-  case 3
+  case 2
     optode_name = '2';
     optode_type = 'D';
-  case 4
+  case 3
     optode_name = '3';
+    optode_type = 'D';
+  case 4
+    optode_name = '4';
     optode_type = 'D';
   case 5
     optode_name = 'A';
