@@ -1,9 +1,10 @@
 # lumomat
 
+*This package is in beta and has not yet been released, master is functional but changes to the data structures may be made before final release*
+
 MATLAB tools for LUMO data.
 
 `lumomat` allows one to read LUMO output files, explore their contents, and export to common file formats. 
-
 
 # Installation
 
