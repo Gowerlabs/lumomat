@@ -68,7 +68,7 @@ function [layout] = read_layout(fn)
 try
   layout_raw = jsondecode(fileread(fn));
 catch e
-  fprintf('Error parsing layout file %s', fn);
+  fprintf('Error parsing layout file %s\n', fn);
   rethrow(e);
 end
 
@@ -92,7 +92,7 @@ try
       lf_lo_landmarks(li).coords_3d.y = lf_lo_landmarks(li).y;
       lf_lo_landmarks(li).coords_3d.z = lf_lo_landmarks(li).z;
     end
-    rmfield(lf_lo_landmarks, {'x', 'y', 'z'});
+    lf_lo_landmarks = rmfield(lf_lo_landmarks, {'x', 'y', 'z'});
     
   end    
 

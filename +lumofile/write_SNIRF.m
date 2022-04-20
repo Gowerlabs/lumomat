@@ -67,6 +67,9 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 %                           which significant reduce file size and improve performance, as
 %                           discussed here: https://github.com/fNIRS/snirf/issues/103.
 
+% Out of spec metadata
+write_lumo_metadata = true;
+
 % Get optional inputs
 p = inputParser;
 expected_styles = {'standard', 'mne-nirs'};
@@ -150,87 +153,89 @@ for gidx = 1:ng
   mdt.ManufacturerName = write_var_string(nirs_meta_group, 'ManufacturerName', 'Gowerlabs');
   mdt.Mode = write_var_string(nirs_meta_group, 'Model', 'LUMO');
   
-  % LUMO specific metadata
-  lumo_md_group = create_group(nirs_meta_group, 'lumo');
- 
-  mdt.lumo.formatVersion = write_var_string(lumo_md_group, 'formatVersion', '1.0.0');
-  
-  % Write global saturation
-  mdt.lumo.saturationFlags = write_int32(lumo_md_group, 'saturationFlags', int32(any(data(gidx).chn_sat, 2)));
+  if write_lumo_metadata
+    % LUMO specific metadata
+    lumo_md_group = create_group(nirs_meta_group, 'lumo');
 
-  %%% Output hub and group information
-  mdt.lumo.hubSerialNumber = write_var_string(lumo_md_group, 'hubSerialNumber', string(enum.hub.serial));
-  mdt.lumo.groupID = write_var_string(lumo_md_group, 'groupID', enum.groups(gidx).id);
-  mdt.lumo.groupName = write_var_string(lumo_md_group, 'groupName', enum.groups(gidx).name);
-  
-  %%% Output the canonical map
-  dockmap = enum.groups(gidx).layout.dockmap;
-  nc = length(enum.groups(gidx).channels);
-  canmap = zeros(nc, 7, 'int32');
-  canmap(:,1) = [enum.groups(gidx).channels.src_node_idx];  % Source node index
-  canmap(:,2) = dockmap(canmap(:,1));                       % Source dock index
-  
-  src_idx = [enum.groups(gidx).channels.src_idx];
-  for ci = 1:nc 
-    src = enum.groups(gidx).nodes(canmap(ci,1)).srcs(src_idx(ci));
-    canmap(:,3) = src.optode_idx;   % Optode index
-    canmap(:,4) = src.wl;           % Wavelength
-  end
-  
-  canmap(:,5) = [enum.groups(gidx).channels.det_node_idx];  % Detecot node index
-  canmap(:,6) = dockmap(canmap(:,5));                       % Detector dock index
-  
-  det_idx = [enum.groups(gidx).channels.det_idx];
-  for ci = 1:nc 
-    det = enum.groups(gidx).nodes(canmap(ci,1)).dets(det_idx(ci));
-    canmap(:,7) = det.optode_idx;   % Optode index
-  end
-  
-  if ~isempty(chn_perm)
-    canmap = canmap(chn_perm,:);
-  end
-  
-  mdt.lumo.canonicalMap = write_int32(lumo_md_group, 'canonincalMap', canmap);
-   
-    
-  %% Output abbreviated nodal enumeration
-  nn = length(enum.groups(gidx).nodes);
-  for i = 1:nn
-    node_group = create_group(lumo_md_group, ['node' num2str(i)]);
-    mdt.lumo.nodes(i).id = write_int32(node_group, 'id', enum.groups(gidx).nodes(i).id);
-    mdt.lumo.nodes(i).revision = write_int32(node_group, 'revision', enum.groups(gidx).nodes(i).rev);
-    mdt.lumo.nodes(i).firmwareVersion = write_var_string(node_group, 'firmwareVersion',  enum.groups(gidx).nodes(i).fwver);    
-    H5G.close(node_group); 
-  end
-  
-  %% Output abbreviated dock information
-  nd = length(enum.groups(gidx).layout.docks);
-  for i = 1:nd
-    dock = enum.groups(gidx).layout.docks(i);
-    dock_group = create_group(lumo_md_group, ['dock' num2str(i)]);
-    mdt.lumo.docks(i).id = write_int32(dock_group, 'id', dock.id);
-    mdt.lumo.docks(i).optodeNames = write_var_string(dock_group, 'optodeNames', {dock.optodes.name});
-    
-    % Write out the optode positions
-    no = length(dock.optodes);
-    optodePos2D = zeros(no, 2);
-    optodePos3D = zeros(no, 3);
-    for j = 1:no
-      optode = dock.optodes(j);
-      optodePos2D(j,:) = [optode.coords_2d.x optode.coords_2d.y];
-      optodePos3D(j,:) = [optode.coords_3d.x optode.coords_3d.y optode.coords_3d.z];
+    mdt.lumo.formatVersion = write_var_string(lumo_md_group, 'formatVersion', '1.0.0');
+
+    % Write global saturation
+    mdt.lumo.saturationFlags = write_int32(lumo_md_group, 'saturationFlags', int32(any(data(gidx).chn_sat, 2)));
+
+    %%% Output hub and group information
+    mdt.lumo.hubSerialNumber = write_var_string(lumo_md_group, 'hubSerialNumber', string(enum.hub.serial));
+    mdt.lumo.groupID = write_var_string(lumo_md_group, 'groupID', enum.groups(gidx).id);
+    mdt.lumo.groupName = write_var_string(lumo_md_group, 'groupName', enum.groups(gidx).name);
+
+    %%% Output the canonical map
+    dockmap = enum.groups(gidx).layout.dockmap;
+    nc = length(enum.groups(gidx).channels);
+    canmap = zeros(nc, 7, 'int32');
+    canmap(:,1) = [enum.groups(gidx).channels.src_node_idx];  % Source node index
+    canmap(:,2) = dockmap(canmap(:,1));                       % Source dock index
+
+    src_idx = [enum.groups(gidx).channels.src_idx];
+    for ci = 1:nc 
+      src = enum.groups(gidx).nodes(canmap(ci,1)).srcs(src_idx(ci));
+      canmap(:,3) = src.optode_idx;   % Optode index
+      canmap(:,4) = src.wl;           % Wavelength
     end
-    
-    mdt.lumo.docks(i).optodePos2D = write_double(dock_group, 'optodePos2D', optodePos2D);
-    mdt.lumo.docks(i).optodePos3D = write_double(dock_group, 'optodePos3D', optodePos3D);  
-    
-    H5G.close(dock_group);
-  end
 
-  % Assign metadata tags
-  snirf.nirs(gidx).metaDataTags = mdt;
-  
-  H5G.close(lumo_md_group);  
+    canmap(:,5) = [enum.groups(gidx).channels.det_node_idx];  % Detecot node index
+    canmap(:,6) = dockmap(canmap(:,5));                       % Detector dock index
+
+    det_idx = [enum.groups(gidx).channels.det_idx];
+    for ci = 1:nc 
+      det = enum.groups(gidx).nodes(canmap(ci,1)).dets(det_idx(ci));
+      canmap(:,7) = det.optode_idx;   % Optode index
+    end
+
+    if ~isempty(chn_perm)
+      canmap = canmap(chn_perm,:);
+    end
+
+    mdt.lumo.canonicalMap = write_int32(lumo_md_group, 'canonincalMap', canmap);
+
+
+    %% Output abbreviated nodal enumeration
+    nn = length(enum.groups(gidx).nodes);
+    for i = 1:nn
+      node_group = create_group(lumo_md_group, ['node' num2str(i)]);
+      mdt.lumo.nodes(i).id = write_int32(node_group, 'id', enum.groups(gidx).nodes(i).id);
+      mdt.lumo.nodes(i).revision = write_int32(node_group, 'revision', enum.groups(gidx).nodes(i).rev);
+      mdt.lumo.nodes(i).firmwareVersion = write_var_string(node_group, 'firmwareVersion',  enum.groups(gidx).nodes(i).fwver);    
+      H5G.close(node_group); 
+    end
+
+    %% Output abbreviated dock information
+    nd = length(enum.groups(gidx).layout.docks);
+    for i = 1:nd
+      dock = enum.groups(gidx).layout.docks(i);
+      dock_group = create_group(lumo_md_group, ['dock' num2str(i)]);
+      mdt.lumo.docks(i).id = write_int32(dock_group, 'id', dock.id);
+      mdt.lumo.docks(i).optodeNames = write_var_string(dock_group, 'optodeNames', {dock.optodes.name});
+
+      % Write out the optode positions
+      no = length(dock.optodes);
+      optodePos2D = zeros(no, 2);
+      optodePos3D = zeros(no, 3);
+      for j = 1:no
+        optode = dock.optodes(j);
+        optodePos2D(j,:) = [optode.coords_2d.x optode.coords_2d.y];
+        optodePos3D(j,:) = [optode.coords_3d.x optode.coords_3d.y optode.coords_3d.z];
+      end
+
+      mdt.lumo.docks(i).optodePos2D = write_double(dock_group, 'optodePos2D', optodePos2D);
+      mdt.lumo.docks(i).optodePos3D = write_double(dock_group, 'optodePos3D', optodePos3D);  
+
+      H5G.close(dock_group);
+    end
+
+    % Assign metadata tags
+    snirf.nirs(gidx).metaDataTags = mdt;
+
+    H5G.close(lumo_md_group);  
+  end
   H5G.close(nirs_meta_group);
   
   %% Create data block
@@ -275,7 +280,7 @@ for gidx = 1:ng
       stim_data(:,1) = [events(marker_idx).timestamp];
       stim_data(:,2) = 0;
       stim_data(:,3) = 1;
-      snirf.nirs(gidx).stim(i).data = write_double(nirs_stim_group, 'data', stim_data);
+      snirf.nirs(gidx).stim(i).data = write_double_fixed(nirs_stim_group, 'data', stim_data);
       
       H5G.close(nirs_stim_group);
       
@@ -542,38 +547,48 @@ end
 
 function val = write_int32(base, path, val)
 tp = H5T.copy('H5T_STD_I32LE');
-write_core(base, path, int32(val), tp);
+write_core(base, path, int32(val), tp, false);
 end
 
 function val = write_double(base, path, val)
 tp = H5T.copy('H5T_IEEE_F64LE');
-write_core(base, path, double(val), tp);
+write_core(base, path, double(val), tp, false);
+end
+
+function val = write_double_fixed(base, path, val)
+tp = H5T.copy('H5T_IEEE_F64LE');
+write_core(base, path, double(val), tp, true);
 end
 
 function val = write_single(base, path, val)
 tp = H5T.copy('H5T_IEEE_F32LE');
-write_core(base, path, single(val), tp);
+write_core(base, path, single(val), tp, false);
 end
 
-function write_core(base, path, val, tp)
+function write_core(base, path, val, tp, fix_shape)
 
 % Dataspace
-if isscalar(val)
-  % Scalar value
-  ds = H5S.create('H5S_SCALAR');     
-elseif rankn(val) == 1
-  % Vector
-  len = numel(val);
-  ds = H5S.create_simple(1, len, len);
-elseif rankn(val) == 2
-  % Matrix (must transpose)
+if fix_shape
   val = val.';
   ds = H5S.create_simple(2, fliplr(size(val)), fliplr(size(val)));
 else
-  H5T.close(tp);
-  error('Data dimensionality not supported');
+  if isscalar(val)
+    % Scalar value
+    ds = H5S.create('H5S_SCALAR');     
+  elseif rankn(val) == 1
+    % Vector
+    len = numel(val);
+    ds = H5S.create_simple(1, len, len);
+  elseif rankn(val) == 2
+    % Matrix (must transpose)
+    val = val.';
+    ds = H5S.create_simple(2, fliplr(size(val)), fliplr(size(val)));
+  else
+    H5T.close(tp);
+    error('Data dimensionality not supported');
+  end
 end
-    
+
 pl = H5P.create('H5P_DATASET_CREATE');      % Porperty list
 dset = H5D.create(base, path, tp, ds, pl);  % Dataset
 
