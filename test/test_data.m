@@ -60,6 +60,7 @@ for i = 1:length(lumo_sample_files)
   nirs_sample = load(nirs_sample_fn{i});
 
   if i == 1
+    
     % Special case for the first file, we insert a layout file
     [enum, data, events] = lumofile.read_lumo(lumo_sample_fn{1}, 'layout', layout_12_1_fn);
   else

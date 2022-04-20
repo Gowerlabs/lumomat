@@ -277,13 +277,14 @@ end
 %
 metadata_fn = fullfile(lf_dir, 'metadata.toml');
 if exist(metadata_fn, 'file') ~= 2
-  error('LUMO file (%s): invalid metadata not found', lf_dir)
+  error('LUMO file (%s): invalid metadata not found\n', lf_dir)
 end
 
 try
-  metadata = toml.read(metadata_fn);
+  raw = fileread(metadata_fn);
+  metadata = lumofile.toml.decode(raw);
 catch e
-  fprintf('LUMO file (%s): error parsing metadata file %s', lf_dir, metadata_fn);
+  fprintf('LUMO file (%s): error parsing metadata file %s\n', lf_dir, metadata_fn);
   rethrow(e);
 end
 
@@ -532,7 +533,8 @@ function [events] = load_lumo_events(lf_dir, lf_desc)
 % 1. Load and parse the event data
 %
 try
-  events_raw = toml.read(fullfile(lf_dir, lf_desc.ev_fn));
+  raw = fileread(fullfile(lf_dir, lf_desc.ev_fn));
+  events_raw = lumofile.toml.decode(raw);
 catch e
   fprintf('LUMO file (%s) invalid: error parsing events file %s', lf_dir, lf_desc.ev_fn);
   rethrow(e);
@@ -587,7 +589,8 @@ function [enum, dataparams] = load_lumo_enum(lf_dir, lf_desc)
 %
 try
   if (lf_desc.lfver(1) < 0) && (lf_desc.lfver(2) < 4)
-    enum_raw = toml.read(fullfile(lf_dir, lf_desc.hw_fn));
+    raw = fileread(fullfile(lf_dir, lf_desc.hw_fn));
+    enum_raw = lumofile.toml.decode(raw);
   else
     enum_raw = toml_read_fixup_hw(fullfile(lf_dir, lf_desc.hw_fn));
   end
@@ -771,7 +774,8 @@ end
 %
 try
   if (lf_desc.lfver(1) < 1) && (lf_desc.lfver(2) < 4)
-    rcdata = toml.read(fullfile(lf_dir, lf_desc.rd_fn));
+    raw = fileread(fullfile(lf_dir, lf_desc.rd_fn));
+    rcdata = lumofile.toml.decode(raw);
   else
     rcdata = toml_read_fixup_rc(fullfile(lf_dir, lf_desc.rd_fn));
   end
@@ -812,7 +816,7 @@ end
 try
   
   lf_nchans = rcdata.variables.n_chans;
-  lf_chlist = reshape(rcdata.variables.chans_list, 3, lf_nchans).';
+  lf_chlist = rcdata.variables.chans_list; %reshape(, 3, lf_nchans).';
   lf_chvalid = rcdata.variables.chans_list_act.';
   lf_t0 = rcdata.variables.t_0;
   lf_tlast = rcdata.variables.t_last;
@@ -1099,7 +1103,7 @@ function toml_data = toml_read_fixup_hw(fn)
 
 raw_text = fileread(fn);
 fixed_raw_text = regexprep(raw_text,'[\n\r]+[\t ]+','\n');
-toml_data = toml.decode(fixed_raw_text);
+toml_data = lumofile.toml.decode(fixed_raw_text);
 
 end
 
@@ -1127,7 +1131,7 @@ raw_text = regexprep(raw_text,'(\d+) +([^=])','$1$2');
 % Adds spaces between, delimiters and the numeric element that comes after.
 raw_text = regexprep(raw_text,',(.)',', $1');
 
-toml_data = toml.decode(raw_text);
+toml_data = lumofile.toml.decode(raw_text);
 
 end
 
