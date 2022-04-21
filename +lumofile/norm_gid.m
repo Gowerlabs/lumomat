@@ -3,7 +3,7 @@ function [uid_hex, uid_name] = norm_gid(uid)
 
     % Normalise the UID to a hex string
     if isnumeric(uid)
-      uid =  ['0x' lower(dec2hex(12342352532, 8))];
+      uid =  ['0x' lower(dec2hex(uid, 8))];
     end
     uid_hex = uid;
     
