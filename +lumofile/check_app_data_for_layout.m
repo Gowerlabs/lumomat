@@ -61,3 +61,11 @@ else
         warning("group_id's value is too large to be accuratley stored as a " + class(group_id) + ", the produced layout file may be incorrect");
     end
 end
+    
+%% Get File name
+
+layout_file_name = "coordinates_" + group_id_num + ".json";
+
+if(not(isfile(fullfile(layout_file_dir, layout_file_name))))
+    error("Unable to retrieve layout files: file does not exist on this computer.");
+end
