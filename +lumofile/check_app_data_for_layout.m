@@ -39,3 +39,25 @@ else
         error("Unable to retrieve layout files: group_id is not a char, cell with a char or numeric type.");
     end
     
+    %Checking if char contains hex or dec value.
+    
+    try
+        if(extractBetween(group_id_str, 1, 2) == "0x");
+            group_id_str_arr = split(group_id_str,"x");
+            group_id_num = hex2dec(group_id_str_arr{2});
+        else
+            %Check if valid number
+            str2num(group_id_str);
+            group_id_num = group_id_str;
+        end
+    catch
+        error("Unable to retrieve layout files: group_id contains invalid characters.");
+    end
+    
+    %Check for precision, because this value can be any UInt64 value, but
+    %double precision floats loose their precision earlier and num2hex
+    %uses doubles this may cause issues and the user should be warned.
+    if(group_id_num == group_id_num +1)
+        warning("group_id's value is too large to be accuratley stored as a " + class(group_id) + ", the produced layout file may be incorrect");
+    end
+end
