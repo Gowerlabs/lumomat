@@ -738,13 +738,14 @@ ans =
 
   struct with fields:
 
-          uid: 20155582
+           id: '0x01338CBE'
+         name: 'C005A'
     landmarks: [5×1 struct]
         docks: [1×12 struct]
       dockmap: [12×1 double]
 ```
 
-The `uid` is a unique identifier which matches the layout to the recorded group, though this is not enforced by software.
+The `id` is a unique identifier which matches the layout to the recorded group, though this is not enforced by software.
 
 The docks field is an array of dock descriptors, we choose an arbitrary index:
 
