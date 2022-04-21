@@ -35,3 +35,11 @@ for i = 1:length(lufr_sample_files)
   
 end
 
+%% Test 2: Test big GID
+
+[enum, data, events] = lumofile.read_lufr(fullfile(path, 'samples', 'sample_lufr_big_gid.lufr'));
+
+%% Test 3: No events
+
+[enum, data, events] = lumofile.read_lufr(fullfile(path, 'samples', 'sample_lufr_no_evt.lufr'));
+ld = LumoData(fullfile(path, 'samples', 'sample_lufr_no_evt.lufr'), 'layout', fullfile(path, 'samples', 'layout_54_20155531.json'));

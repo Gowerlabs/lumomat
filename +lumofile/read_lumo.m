@@ -868,6 +868,10 @@ for ci = 1:lf_nchans
   
 end
 
+if isfield(enum.groups(gi),'layout')
+  lumomat.validate_layout(enum);
+end
+
 fprintf('LUMO file enumeration contains %d tiles, %d channels\n', ...
   length(enum.groups(gi).nodes), length(enum.groups(gi).channels));
 
@@ -877,10 +881,6 @@ dataparams = struct('nchns', lf_nchans, ...
   'chn_list', lf_chlist, ...
   'chn_sat', lf_chvalid, ...
   'chn_fps', lf_framerate);
-
-% The purpose of the following fields is unclear and they are not included
-% 'chn_t0', lf_t0, ...
-% 'chn_tl', lf_tlast, ...
 
 end
 

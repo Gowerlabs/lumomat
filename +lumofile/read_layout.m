@@ -16,6 +16,7 @@ function [layout] = read_layout(fn)
 %
 %     layout:   An structure containing the following fields
 %
+%               id:        
 %               docks:     an array of dock description structures
 %               dockmap:   a mapping from dock id to the docks array indices
 %               landmarks: (optional) an array of structures of named points on the laytout
@@ -128,7 +129,10 @@ maxdid = max(dockids);
 dockmap = zeros(maxdid, 1);
 dockmap(dockids) = 1:length(dockids);
 
-layout = struct('uid', lf_lo_group_uid, ...
+[uid_hex, uid_name] = lumomat.norm_gid(lf_lo_group_uid);
+
+layout = struct('id', uid_hex, ...
+  'name', uid_name, ...
   'dims_2d', lf_lo_dims_2d, ...
   'dims_3d', lf_lo_dims_3d, ...
   'landmarks', lf_lo_landmarks, ...

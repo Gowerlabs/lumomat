@@ -731,7 +731,7 @@ end
 if isempty(layout_override)
   
   % The user has nor provided a layout, we must use the embedded data if it exists
-   enum.groups(gidx + 1).layout = [];
+  % enum.groups(gidx + 1).layout = [];
    warning([...
       'The sepcified LUFR file does not contain an embedded layout file, and no layout '...
       'has been specified when calling this function. The returned enumeration will '...
@@ -755,19 +755,25 @@ else
       
   elseif isstruct(layout_override)
     enum.groups(gidx + 1).layout = layout_override;
-    fprintf('LUFR file using user-specified layout structure (not validated)\n');
+    fprintf('LUFR file using user-specified layout structure\n');
   else
     error('The specified layout is neither a layout filename nor structure, consult help');
   end
-  
+    
 end
 
-%%% TODO: Add layout validation
+if isfield(enum.groups(gidx + 1), 'layout')
+  lumomat.validate_layout(enum);
+end
 
 % Build event output structure
 ne = length(evtim);
-for i = 1:ne
-  events(i) = struct('mark', convertStringsToChars(evstr{i}), 'timestamp', evtim(i));
+if ne > 0
+  for i = 1:ne
+    events(i) = struct('mark', convertStringsToChars(evstr{i}), 'timestamp', evtim(i));
+  end
+else
+  events = [];
 end
 
 % Build data output structure
