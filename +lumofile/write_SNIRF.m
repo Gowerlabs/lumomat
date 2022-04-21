@@ -498,6 +498,14 @@ function [probe] = write_probe(nirs_probe_group, style, enum, gidx, glsrc, gldet
     
     switch style
         case 'mne-nirs'
+          
+          reqd_landmarks = {'Al', 'Ar', 'Nasion'};
+          for j = 1:length(reqd_landmarks)
+            if ~any(strcmp(landmarkLabels, reqd_landmarks{j}))
+              error('Layout does not contain the required landmarks for export to MNE-NIRS');
+            end
+          end
+             
           landmarkLabels = strrep(landmarkLabels, 'Al', 'LPA');
           landmarkLabels = strrep(landmarkLabels, 'Ar', 'RPA');
           landmarkLabels = strrep(landmarkLabels, 'Nasion', 'NASION');
