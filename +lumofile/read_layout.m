@@ -41,7 +41,7 @@ function [layout] = read_layout(fn)
 %   In addition to the ID, each dock contains an array of optodes descriptors. Each optode
 %   is defined by a structure:
 %
-%     optode.name:      A name for the optode (not used for indexing)
+%     optode.name:       A name for the optode (not used for indexing)
 %     optode.coords_2d:  Co-ordinates of the optode in a flattened 2D representation
 %     optode.coords_3d:  Co-orindates of the optode in 3D space
 %
@@ -58,11 +58,6 @@ function [layout] = read_layout(fn)
 %
 %
 %   (C) Gowerlabs Ltd., 2022
-%
-
-%%% TODO
-%
-% - Rework landmark structure to match the organisation of the optodes
 %
 
 try

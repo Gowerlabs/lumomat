@@ -125,10 +125,7 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 
 %%% TODOS
 %
-% - Form a node permuation vector which maps from node indices to reduced (dock present)
-% - Perform validation of cap UID in layout file
-% - Consider reduced layout mappings and layout validation
-% - Optode filtering, and skip data option to allow inspection without inflection
+% - Add optode filtering in the style of lufr load
 %
 
 ts_load = tic;
@@ -666,7 +663,7 @@ try
     enum.groups(gi) = struct();
     
     % Normalise the UID to a hex string and a name
-    [uid_hex, uid_name] = lumofile.norm_gid(enum_raw.Hub.Group(1).uid);
+    [uid_hex, uid_name] = lumomat.norm_gid(enum_raw.Hub.Group(1).uid);
     enum.groups(gi).id = uid_hex;
     enum.groups(gi).name = uid_name;
     

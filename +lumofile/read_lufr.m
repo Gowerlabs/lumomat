@@ -618,7 +618,7 @@ tmpudat = 10e-3; %Always at 100Hz = 1/10ms
 %
 
 % Rework the group ID to a hex string and descriptive name
-[uid_hex, uid_name] = lumofile.norm_gid(enum.groups(gidx + 1).id);
+[uid_hex, uid_name] = lumomat.norm_gid(enum.groups(gidx + 1).id);
 enum.groups(gidx + 1).id = uid_hex;
 enum.groups(gidx + 1).name = uid_name;
 

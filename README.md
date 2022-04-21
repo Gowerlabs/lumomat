@@ -387,7 +387,7 @@ To encode event markers in the SNIRF stimulus format, all events which share the
 
 LUMO includes additional fields in the SNIRF metadata, alongside a number of auxiliary fields, as permitted by the SNIRF specification. The format of the metadata (and auxiliary data) is versioned as described. The current version is 1.0.0. All fields are located under `nirs(i)/metaDataTags/lumo/`:
 
- - `formatVersion`: the version of the `LUMO` metadata and auxiliary fields, specified as a string representation of a semantic version number.
+ - `lumomatVersion`: the version of the `lumomat` package which wrote the SNIRF file, a string representation of a semantic version number.
  - `saturationFlags`: a vector of integers in which a non-zero value in the `i`th element indicates that saturation of the `i`th channel occurred at some time during the recording. Transient saturation can occur during, e.g., movement, so this global flag can exclude many channels which are viable for the vast majority of the recording. Some versions of the LUMO software will export a time-series of saturation flags (see auxiliary measurements) to enable more granular channel filtering.
  - `hubSerialNumber`: the serial number of the Hub to which the group was connected.
  - `groupName`: the name of group upon which the data was acquired (e.g. the cap serial number).
@@ -410,10 +410,13 @@ LUMO includes additional fields in the SNIRF metadata, alongside a number of aux
 
 The following fields are TBC pending resolution of [queries]([]https://github.com/fNIRS/snirf/issues/107) regarding the SNIRF specification.
 
-  - (*) Motion data:
-  - (*) Saturation flags:
+Each auxiliary measurement is located in an individual `/nirs(i)/aux(j)` field. The `/nirs{i}/aux{j}/name` field will be set as decribed to identify the data.
 
-(*) These fields are optional and only recorded by more recent software versions of LUMO. To update your software in order to capture this data, contact Gowerlabs.
+  - (*) Temperature: matrix of dimensions `<no. time x no. nodes>` containing the internal tile temperature for each node over the course of the experiment.
+  - (*) Saturation (`saturationFlags`): matrix of dimensions `<no. time x no. channels>` where a non-zero value indicates that the channel was saturated at the selected time point. This is a more detailed version of the channel saturation summary written into the LUMO metadata.
+  - (*) Motion data: a set of six matrices each of dimensions `<no. time x no. nodes>`, with names according to the SNIRF specification (e.g. `accel_x`). Acceleration is stored in units of `g`, and gyroscope data in `deg/s`.
+  
+*All auxiliary fields are optional and only recorded by more recent software versions of LUMO. To update your software in order to capture this data, contact Gowerlabs.*
 
 
 ### Notes
