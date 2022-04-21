@@ -10,25 +10,36 @@
 [path, ~, ~] = fileparts(mfilename('fullpath'));
 
 lufr_sample_files = {...
-  'sample_lufr_v2_1.lufr', ...
-  'sample_lufr_18_v2_1.lufr'};
+  'sample_lufr_18_v2_1.lufr', ...
+  'sample_lufr_17_v2_1.lufr'};
 
-lumo_sample_fn = fullfile(path, 'samples', lufr_sample_files);
-
-layout_fn = {fullfile(path, 'samples', 'layout_sample_lufr_v2_1.json'), ...
-  fullfile(path, 'samples', 'layout_20155531.json')};
+layout_sample_files = {...
+  'layout_54_20155531.json',...
+  'layout_54_20155531.json'};
 
 %% Test 1: Convert from LumoData object to SNIRF
 
 for i = 1:length(lufr_sample_files)
+
+  % Get LUFR file and layout file
+  lufr_sample_fn = fullfile(path, 'samples', lufr_sample_files{i});
+  layout_sample_fn = fullfile(path, 'samples', layout_sample_files{i});
   
   % Load raw data
-  ld = LumoData(lumo_sample_fn{i}, 'layout', layout_fn{i});
+  ld = LumoData(lufr_sample_fn, 'layout', layout_sample_fn);
 
-  [p,n,e] = fileparts(lumo_sample_fn{i});
+  [p,n,e] = fileparts(lufr_sample_fn);
   snirffn = fullfile(p, [n '.snirf']);
   
   snirf = ld.write_SNIRF(snirffn, 'style', 'mne-nirs');
   
 end
 
+%% Test 2: Test big GID
+
+[enum, data, events] = lumofile.read_lufr(fullfile(path, 'samples', 'sample_lufr_big_gid.lufr'));
+
+%% Test 3: No events
+
+[enum, data, events] = lumofile.read_lufr(fullfile(path, 'samples', 'sample_lufr_no_evt.lufr'));
+ld = LumoData(fullfile(path, 'samples', 'sample_lufr_no_evt.lufr'), 'layout', fullfile(path, 'samples', 'layout_54_20155531.json'));

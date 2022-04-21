@@ -125,10 +125,7 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 
 %%% TODOS
 %
-% - Form a node permuation vector which maps from node indices to reduced (dock present)
-% - Perform validation of cap UID in layout file
-% - Consider reduced layout mappings and layout validation
-% - Optode filtering, and skip data option to allow inspection without inflection
+% - Add optode filtering in the style of lufr load
 %
 
 ts_load = tic;
@@ -666,7 +663,7 @@ try
     enum.groups(gi) = struct();
     
     % Normalise the UID to a hex string and a name
-    [uid_hex, uid_name] = lumofile.norm_gid(enum_raw.Hub.Group(1).uid);
+    [uid_hex, uid_name] = lumomat.norm_gid(enum_raw.Hub.Group(1).uid);
     enum.groups(gi).id = uid_hex;
     enum.groups(gi).name = uid_name;
     
@@ -871,6 +868,10 @@ for ci = 1:lf_nchans
   
 end
 
+if isfield(enum.groups(gi),'layout')
+  lumomat.validate_layout(enum);
+end
+
 fprintf('LUMO file enumeration contains %d tiles, %d channels\n', ...
   length(enum.groups(gi).nodes), length(enum.groups(gi).channels));
 
@@ -880,10 +881,6 @@ dataparams = struct('nchns', lf_nchans, ...
   'chn_list', lf_chlist, ...
   'chn_sat', lf_chvalid, ...
   'chn_fps', lf_framerate);
-
-% The purpose of the following fields is unclear and they are not included
-% 'chn_t0', lf_t0, ...
-% 'chn_tl', lf_tlast, ...
 
 end
 

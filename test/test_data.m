@@ -44,7 +44,7 @@ nirs_sample_files = {...
 lumo_sample_fn = fullfile(path, 'samples', lumo_sample_files);
 nirs_sample_fn = fullfile(path, 'samples', nirs_sample_files);
 
-layout_12_1_fn = fullfile(path, 'samples', 'layout_12_1.json');
+layout_12_1_fn = fullfile(path, 'samples', 'layout_12_3735928559.json');
 
 
 %% Test 1: parse all supported lumo file versions
