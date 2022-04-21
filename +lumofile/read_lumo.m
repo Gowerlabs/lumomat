@@ -163,6 +163,24 @@ else
   events = [];
 end
 
+if lf_desc.has_layout
+    lo_dir = lf_dir
+else
+    
+    answer = questdlg('If this machine runs a LumoView software, a layout file can be extracted, do you want to proceed?','');
+    
+    switch answer
+        case 'Yes'
+            try
+                [lo_dir, lf_desc.lo_fn] = lumofile.check_app_data_for_layout(enum.groups(gi).id);
+                lf_desc.has_layout = true;
+            catch exception
+                fprintf(exception)
+            end
+    end
+            
+end
+
 % Load layout or take from the user
 if isempty(layout_override)
   
@@ -170,7 +188,7 @@ if isempty(layout_override)
   if lf_desc.has_layout
     
     try
-      enum.groups(gi).layout = lumofile.read_layout(fullfile(lf_dir, lf_desc.lo_fn));
+      enum.groups(gi).layout = lumofile.read_layout(fullfile(lo_dir, lf_desc.lo_fn));
     catch e
        fprintf('LUMO file (%s) invalid: error parsing layout file %s\n', lf_dir, lf_desc.lo_fn);
        rethrow(e)
