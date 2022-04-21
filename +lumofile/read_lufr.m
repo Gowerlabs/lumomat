@@ -222,7 +222,7 @@ n_infos = 0;
 % Special case the enumeration so we can access it easily
 rc_enum_idx = 0;
 
-wb = waitbar(ftell(fid)/filesize, 'Scanning records');
+% wb = waitbar(ftell(fid)/filesize, 'Scanning records');
 i = 0;
 
 while(~feof(fid))
@@ -313,12 +313,12 @@ while(~feof(fid))
     
     % Increment counter
     i = i+1;
-    if ~mod(i, 100)
-        waitbar(ftell(fid)/filesize, wb, sprintf('Scanning frames %d',length(rclength)));
-    end
+%     if ~mod(i, 100)
+%         waitbar(ftell(fid)/filesize, wb, sprintf('Scanning frames %d',length(rclength)));
+%     end
     
 end
-close(wb);
+% close(wb);
 
 if(n_enums < 1)
     error('File does not contain an enumeration block');
@@ -389,8 +389,8 @@ if(apply_filter)
     lin_src_opt = [enum.groups(gidx + 1).channels.src_optode_name].' - 64;    % ASCII 'A' -> 1
     lin_det_opt = [enum.groups(gidx + 1).channels.det_optode_name].' - 47;   % ASCII '0' -> 1
      
-    % Inform the user
-    wb = waitbar(0, 'Applying distance filter');
+%     % Inform the user
+%     wb = waitbar(0, 'Applying distance filter');
     
     % Over every entry in the keep list
     k = 1;
@@ -407,13 +407,13 @@ if(apply_filter)
         chperm(k:(k+n_ch_match-1)) = ch_match;
         k = k+n_ch_match;
         
-        if ~mod(i,100)
-            waitbar(i/size(chfilter,1), wb, sprintf('Applying distance filter %d / %d', i, size(chfilter,1)));
-        end
+%         if ~mod(i,100)
+%             waitbar(i/size(chfilter,1), wb, sprintf('Applying distance filter %d / %d', i, size(chfilter,1)));
+%         end
         
     end
     
-    close(wb);
+%     close(wb);
     
     if(any(chperm == 0))
         error('Some entries in the channel keep filter could not be matched');
@@ -457,8 +457,8 @@ accdat = zeros(n_nodes, 3, n_mpu, n_frames);        % MPU data (concatenated lat
 gyrdat = zeros(n_nodes, 3, n_mpu, n_frames);        % MPU data (concatenated later)
 
 
-% Loop over the frames and get them data
-wb = waitbar(0, 'Processing frames');
+% % Loop over the frames and get them data
+% wb = waitbar(0, 'Processing frames');
 
 i_fr = 1;   % Frame count
 i_if = 1;   % Information block count
@@ -538,20 +538,20 @@ for i = 1:length(rclength)
         i_if = i_if + 1;
     end
     
-    if ~mod(i,100)
-        waitbar(i/length(rclength), wb, sprintf('Processing record %d / %d', i, length(rclength)));
-    end
+%     if ~mod(i,100)
+%         waitbar(i/length(rclength), wb, sprintf('Processing record %d / %d', i, length(rclength)));
+%     end
     
 end
 
-close(wb);
+% close(wb);
 
 % Close the file
 fclose(fid);
 
 
 % Build the saturation flag matrix
-det_sat_limit = 95;
+det_sat_limit = 97.5;
 
 fprintf('Building saturation channel mapping\n');
 
@@ -573,7 +573,7 @@ for i = 1:length(enum.groups(gidx + 1).channels)
 end
 
 % Loop over the frames and get them data
-wb = waitbar(0, 'Building saturation flag matrix');
+% wb = waitbar(0, 'Building saturation flag matrix');
 
 if(apply_filter)    
      satflag = false(n_schans_keep, n_frames);
@@ -594,14 +594,14 @@ for j = 1:n_frames
         satflag(satchans,j) = true;
     end
     
-    if ~mod(j,100)
-        waitbar(j/n_frames, wb, sprintf('Building saturation flag matrix %d / %d', j, n_frames));
-    end
+%     if ~mod(j,100)
+%         waitbar(j/n_frames, wb, sprintf('Building saturation flag matrix %d / %d', j, n_frames));
+%     end
 
 end
 
 
-close(wb);
+% close(wb);
 
 % Reorder MPU data
 dim = size(gyrdat);
@@ -777,14 +777,11 @@ data = struct('chn_dat', chdat, ...
               'chn_sat', satflag,...
               'nframes', size(chdat, 2), ...
               'nchns', size(chdat, 1), ...
-              'node_temp', tmpdat);
-
-% MPU data to be added pending resolution of auxiliar data size fields in SNIRF
-% specifications.
-%
-% mpu_dt        
-% mpu_fps
-% mpu_acc_dat
-% mpu_gyr_dat
-
+              'node_temp', tmpdat, ...
+              'node_mpu_dt', 10e-3, ...
+              'node_mpu_fps', 100, ...
+              'node_acc', accdat, ...
+              'node_gyr', gyrdat);
+              
+            
 end

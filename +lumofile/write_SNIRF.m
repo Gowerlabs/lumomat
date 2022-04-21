@@ -24,14 +24,25 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 %                                wavelengths.
 %                             2. Rename landmarks: Al -> LPA, Ar -> RPA, Nasion -> NASION
 %
-%   'source':   A descriptive string describing the source of the data, which will be
-%               encoded in the metadata.
+%   'lumometa': Include an additional set of metadata under `/nirs(i)/metaDataTags/lumo`
+%               containing a an abbreviated and flattened representation of the canonical
+%               layout.
+%
+%               Enabling this option prevents validation. It is unclear if this is due to a
+%               specification violation or a bug in the validator. This option may be
+%               updated pending: https://github.com/fNIRS/snirf/issues/110
+%
+%               'true':   (defualt) include metadata
+%               'false':  supress inclusion of metadata
 %
 %   Returns:
 %
 %     snirf:    A representaiton of the SNIRF file in structure format.
 %
 %   Details:
+%
+%   The SNIRF output is described by specification. Certain addition lumo specific metadata
+%   is included, details of which can be found in the documentation for this package.
 %
 %   To construct a SNIRF output description of the system, the LUMO enumeration is
 %   transformed from the canonical node local format to a globally indexed spectroscopic
@@ -47,8 +58,6 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 %   docks in a group/cap) is collapsed to form a description containing only the occupied
 %   docks. Extended information is provided containing the complete dock layout.
 %
-%   The following LUMO specific information is written to the file:
-%
 %
 % See also LUMO_READ
 %
@@ -58,24 +67,18 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 
 %%% TODO
 %
-% Add details of the additional LUMO specific fields
-% Add temporal flags
+% Pending: https://github.com/fNIRS/snirf/issues/103, implement modified channel descriptors
+%          for significant file size reduction.
 %
-% Implement draft channel description format:
-%
-%   'draft_chdesc':         Use the draft modifications to the channel descriptor groups
-%                           which significant reduce file size and improve performance, as
-%                           discussed here: https://github.com/fNIRS/snirf/issues/103.
-
-% Out of spec metadata
-write_lumo_metadata = true;
 
 % Get optional inputs
 p = inputParser;
 expected_styles = {'standard', 'mne-nirs'};
 addOptional(p, 'style', 'standard', @(x) any(validatestring(x, expected_styles)));
+addOptional(p, 'lumometa', true, @islogical);
 parse(p, varargin{:})
 style = p.Results.style;
+write_lumo_metadata = p.Results.lumometa;
 
 
 ng = length(enum.groups);
@@ -157,10 +160,10 @@ for gidx = 1:ng
     % LUMO specific metadata
     lumo_md_group = create_group(nirs_meta_group, 'lumo');
 
-    mdt.lumo.formatVersion = write_var_string(lumo_md_group, 'formatVersion', '1.0.0');
+    mdt.lumo.lumomatVersion = write_var_string(lumo_md_group, 'lumomatVersion', lumomat.ver());
 
     % Write global saturation
-    mdt.lumo.saturationFlags = write_int32(lumo_md_group, 'saturationFlags', int32(any(data(gidx).chn_sat, 2)));
+    mdt.lumo.saturationFlags = write_int8(lumo_md_group, 'saturationFlags', any(data(gidx).chn_sat, 2));
 
     %%% Output hub and group information
     mdt.lumo.hubSerialNumber = write_var_string(lumo_md_group, 'hubSerialNumber', string(enum.hub.serial));
@@ -288,14 +291,77 @@ for gidx = 1:ng
     
   end
 
-  % Create aux group
+  % Create aux groups
   %
+  auxi = 1;
   
-  %%% TODO
-  %
-  % Add optional MPU
-  % Add optional temperature
-  % Add optional per-frame saturation
+  % Per frame saturation
+  if size(data(gidx).chn_sat, 2) > 1
+      nirs_aux_sat = create_group(nirs_group, ['aux' num2str(auxi)]); 
+      snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_sat, 'name', 'saturationFlags');
+      snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_sat, 'time', [0 data(gidx).chn_dt]);
+      snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_int8(nirs_aux_sat, 'dataTimeSeries', data(gidx).chn_sat.');
+      H5G.close(nirs_aux_sat);
+      auxi = auxi+1;
+  end
+  
+  % Temperature
+  if isfield(data(gidx), 'node_temp')
+      nirs_aux_temp = create_group(nirs_group, ['aux' num2str(auxi)]); 
+      snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_temp, 'name', 'temperature');
+      snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_temp, 'time', [0 data(gidx).chn_dt]);
+      snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_temp, 'dataTimeSeries',  data(gidx).node_temp.');
+      H5G.close(nirs_aux_temp);
+      auxi = auxi+1;    
+  end
+  
+  
+  % MPU data
+  if isfield(data(gidx), 'node_acc') && isfield(data(gidx), 'node_gyr')
+    
+    nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
+    snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'accel_x');
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_acc(:,1,:)).');
+    H5G.close(nirs_aux_mpu);
+    auxi = auxi+1;    
+    
+    nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
+    snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'accel_y');
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_acc(:,2,:)).');
+    H5G.close(nirs_aux_mpu);
+    auxi = auxi+1;
+    
+    nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
+    snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'accel_z');
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_acc(:,3,:)).');
+    H5G.close(nirs_aux_mpu);
+    auxi = auxi+1;
+
+    nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
+    snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'gyro_x');
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_gyr(:,1,:)).');
+    H5G.close(nirs_aux_mpu);
+    auxi = auxi+1;    
+    
+    nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
+    snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'gyro_y');
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_gyr(:,2,:)).');
+    H5G.close(nirs_aux_mpu);
+    auxi = auxi+1;
+    
+    nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
+    snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'gyro_z');
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_gyr(:,3,:)).');
+    H5G.close(nirs_aux_mpu);
+    auxi = auxi+1;
+    
+  end
      
   % Close root group
   H5G.close(nirs_group);
@@ -548,6 +614,11 @@ end
 function val = write_int32(base, path, val)
 tp = H5T.copy('H5T_STD_I32LE');
 write_core(base, path, int32(val), tp, false);
+end
+
+function val = write_int8(base, path, val)
+tp = H5T.copy('H5T_STD_I8LE');
+write_core(base, path, int8(val), tp, false);
 end
 
 function val = write_double(base, path, val)
