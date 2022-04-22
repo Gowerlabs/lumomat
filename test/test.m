@@ -6,4 +6,6 @@
 
 % Run low-level API tests
 runtests('test_data.m')
+runtests('test_SNIRF.m')
+runtests('test_lufr.m')
 

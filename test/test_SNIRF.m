@@ -25,7 +25,7 @@ nirs_sample_files = {...
 lumo_sample_fn = fullfile(path, 'samples', lumo_sample_files);
 nirs_sample_fn = fullfile(path, 'samples', nirs_sample_files);
 
-layout_12_1_fn = fullfile(path, 'samples', 'layout_12_1.json');
+layout_12_1_fn = fullfile(path, 'samples', 'layout_12_3735928559.json');
 
 %% Test 1: Convert from LumoData object to SNIRF
 
@@ -42,7 +42,7 @@ for i = 1:length(lumo_sample_files)
   [p,n,e] = fileparts(lumo_sample_fn{i});
   snirffn = fullfile(p, [n '.snirf']);
   
-  ld.write_SNIRF(snirffn, 'ordering', 'mne-nirs');
+  ld.write_SNIRF(snirffn, 'style', 'mne-nirs');
   
 end
 

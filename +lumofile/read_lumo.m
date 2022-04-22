@@ -1,7 +1,7 @@
 function [enum, data, events] = read_lumo(lf_dir, varargin)
 % LUMOFILE.READ_LUMO Read a LUMO file from disk
 %
-% [enum, data, events] = LUMOFILE.READ_LUMO(filename) 
+% [enum, data, events] = LUMOFILE.READ_LUMO(filename)
 %
 % LUMOFILE.READ_LUMO reads a LUMO file from disk, returning a set of data structures which
 % contain a complete description of the system, and the available data.
@@ -9,7 +9,7 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %   Paramters:
 %
 %   'filename':       The path of the LUMO file to load.
-%                           
+%
 %   Optional Parameters:
 %
 %   'layout':         When a layout is specified, the embedded layout in the specified LUMO
@@ -50,26 +50,26 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %   (src_node_idx(j), src_idx(k), det_node_idx(l), det_idx(m))
 %
 %   This informaiton is exposed in the retuned enumeration:
-% 
+%
 %   >> ch = enum.groups(gi).channels(98)
-% 
-%   ch = 
-% 
+%
+%   ch =
+%
 %   struct with fields:
-% 
+%
 %     src_node_idx: 1
 %          src_idx: 2
 %     det_node_idx: 1
 %          det_idx: 2
 %
-%   One may inspect the nature of the sources or detectors with reference to the node to 
+%   One may inspect the nature of the sources or detectors with reference to the node to
 %   which it belongs, e.g., the wavelength of a source index 2 on node index 1:
 %
 %   nodes = enum.groups(gi).nodes;
 %   wl = nodes(ch.src_node_idx).srcs(ch.src_idx).wl
-% 
+%
 %   wl =
-% 
+%
 %      735
 %
 %   The physical location of a source is determined by its association with an optode:
@@ -86,23 +86,23 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %
 %   layout = enum.groups(gi).layout;
 %   node_id = nodes(ch.src_node_idx).id;
-% 
+%
 %   >> optode = layout.docks(layout.dockmap(node_id)).optodes(optode_idx)
-% 
-%   optode = 
-% 
+%
+%   optode =
+%
 %     struct with fields:
-% 
+%
 %         name: 'B'
 %     coords_2d: [1×1 struct]
 %     coords_3d: [1×1 struct]
-% 
+%
 %
 %   Note that a 'node' is synonymous with a LUMO tile, or a module in the nomencalature of
 %   other fNIRS/DOT formats.
 %
 %   The canonical representation of a LUMO system allows for a complete representation of
-%   an arbitrary LUMO system. 
+%   an arbitrary LUMO system.
 %
 %   The data:
 %
@@ -169,8 +169,8 @@ if isempty(layout_override)
     try
       enum.groups(gi).layout = lumofile.read_layout(fullfile(lf_dir, lf_desc.lo_fn));
     catch e
-       fprintf('LUMO file (%s) invalid: error parsing layout file %s\n', lf_dir, lf_desc.lo_fn);
-       rethrow(e)
+      fprintf('LUMO file (%s) invalid: error parsing layout file %s\n', lf_dir, lf_desc.lo_fn);
+      rethrow(e)
     end
     
   else
@@ -179,7 +179,7 @@ if isempty(layout_override)
       'The sepcified LUMO file does not contain an embedded layout file, and no layout '...
       'has been specified when calling this function. The returned enumeration will '...
       'lack layout information, and it will not be possible to convert this file to '...
-      'formats which require a layout. Specify an appropriate layout file to supress '... 
+      'formats which require a layout. Specify an appropriate layout file to supress '...
       'this warning, or copy an appropriate layout to the .LUMO folder in order for it '...
       'to be used as an automatic fallback.']);
   end
@@ -193,10 +193,10 @@ else
       enum.groups(gi).layout = lumofile.read_layout(layout_override);
       fprintf('LUMO file using user-specified layout file\n');
     catch e
-       fprintf('An error occurred loading the specified layout file %s', layout_override);
-       rethrow e
+      fprintf(2, 'An error occurred loading the specified layout file %s\n', layout_override);
+      rethrow e
     end
-      
+    
   elseif isstruct(layout_override)
     enum.groups(gi).layout = layout_override;
     fprintf('LUMO file using user-specified layout structure (not validated)\n');
@@ -247,7 +247,7 @@ end
 % load_lumo_desc
 %
 % Create the lumo file description, returning a structure of information required for
-% parsing, including the version, file-names, and flags indicating the available contents. 
+% parsing, including the version, file-names, and flags indicating the available contents.
 % All files referenced in the structure have been confirmed to exist within the file.
 %
 function [lf_desc] = load_lumo_desc(lf_dir)
@@ -281,7 +281,7 @@ try
   raw = fileread(metadata_fn);
   metadata = lumofile.toml.decode(raw);
 catch e
-  fprintf('LUMO file (%s): error parsing metadata file %s\n', lf_dir, metadata_fn);
+  fprintf(2, 'LUMO file (%s): error parsing metadata file %s\n', lf_dir, metadata_fn);
   rethrow(e);
 end
 
@@ -291,7 +291,7 @@ lf_ver = reqfield(metadata, 'lumo_file_version', lf_dir);
 try
   lf_ver_num = str2double(strsplit(lf_ver, '.'));
 catch e
-  fprintf('LUMO file (%s): error parsing fiile version number\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): error parsing fiile version number\n', lf_dir);
   rethrow(e)
 end
 
@@ -317,7 +317,7 @@ end
 
 % Look for the file which enuemrates the system
 if (lf_ver_num(1) < 1) && (lf_ver_num(2) < 2)
-  lf_meta_hw_fn = reqfield(lf_meta_fns, 'layout_file');  
+  lf_meta_hw_fn = reqfield(lf_meta_fns, 'layout_file');
 else
   lf_meta_hw_fn = reqfield(lf_meta_fns, 'hardware_file');
 end
@@ -341,7 +341,7 @@ end
 
 % Look for a cap layout file
 if (lf_ver_num(1) < 1) && (lf_ver_num(2) > 1)
-
+  
   % On file versions >= 0.2.0 the layout file will be specified, or missing
   lf_meta_lo_fn = optfield(lf_meta_fns, 'layout_file');
   if isempty(lf_meta_lo_fn)
@@ -356,7 +356,7 @@ else
   % On file versions < 0.2.0 the layout file field is reserved for use by the enumeration
   % but we might still seek a layout by file name
   lf_meta_lo_fn = fullfile(lf_dir, 'layout.json');
-  if exist(lf_meta_lo_fn, 'file') ~= 2  
+  if exist(lf_meta_lo_fn, 'file') ~= 2
     fprintf('LUMO file %s does not contain cap layout information\n', lf_dir);
     lf_has_layout = false;
     lf_meta_lo_fn = [];
@@ -365,7 +365,7 @@ else
   end
   
 end
-  
+
 % Look for option event file
 lf_meta_ev_fn = optfield(lf_meta_fns, 'event_file');
 if isempty(lf_meta_ev_fn)
@@ -430,7 +430,7 @@ try
     
   end
 catch e
-  fprintf('LUMO file (%s) invalid: error parsing intensity structure from file %s', ...
+  fprintf(2, 'LUMO file (%s) invalid: error parsing intensity structure from file %s\n', ...
     lf_dir, lf_meta_rd_fn);
   rethrow(e);
 end
@@ -533,7 +533,7 @@ try
   raw = fileread(fullfile(lf_dir, lf_desc.ev_fn));
   events_raw = lumofile.toml.decode(raw);
 catch e
-  fprintf('LUMO file (%s) invalid: error parsing events file %s', lf_dir, lf_desc.ev_fn);
+  fprintf(2, 'LUMO file (%s) invalid: error parsing events file %s\n', lf_dir, lf_desc.ev_fn);
   rethrow(e);
 end
 
@@ -541,31 +541,31 @@ end
 if isempty(fieldnames(events_raw))
   events = [];
 else
-
+  
   lf_events = reqfield(events_raw, 'events', lf_dir);
-
+  
   try
     for ii = 1:length(lf_events)
-
+      
       if (lf_desc.lfver(1) == 0) && (lf_desc.lfver(2) < 4)
         % Versions prior to 0.4.0 stored the timestamp as a string (contrary to spec)
         ts = str2double(lf_events{ii}.Timestamp);
       else
         ts = lf_events{ii}.Timestamp;
       end
-
+      
       events(ii) = struct('mark', lf_events{ii}.name, 'timestamp', ts);
-
+      
     end
   catch e
-    fprintf('LUMO file (%s): error parsing events structure from file %s', lf_dir, lf_desc.ev_fn);
+    fprintf(2, 'LUMO file (%s): error parsing events structure from file %s\n', lf_dir, lf_desc.ev_fn);
     rethrow(e);
   end
   
   % Sort by timestamp
   [~, perm] = sort([events.timestamp]);
   events = events(perm);
-
+  
 end
 
 fprintf('LUMO file events file contains %d entries\n', length(events));
@@ -592,8 +592,8 @@ try
     enum_raw = toml_read_fixup_hw(fullfile(lf_dir, lf_desc.hw_fn));
   end
 catch e
-  fprintf('LUMO file (%s) invalid: error parsing (fixed) hardware file %s', lf_dir, lf_desc.hw_fn);
-  rethrow(e);  
+  fprintf(2, 'LUMO file (%s) invalid: error parsing (fixed) hardware file %s\n', lf_dir, lf_desc.hw_fn);
+  rethrow(e);
 end
 
 % 2. Canonicalise the enumeration
@@ -614,7 +614,7 @@ try
   else
     enum.hub.fw_ver = '';
   end
-    
+  
   if isfield(enum_raw.Hub, 'hardware_version')
     temp = enum_raw.Hub.hardware_version;
     if temp ~= ""
@@ -636,10 +636,10 @@ try
   else
     enum.hub.sn = '';
   end
-    
+  
   
 catch e
-  fprintf('LUMO file (%s): an exception ocurred parsing the hub enumeration\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): an exception ocurred parsing the hub enumeration\n', lf_dir);
   rethrow(e);
 end
 
@@ -651,7 +651,6 @@ end
 %
 try
   
-  %%% TODO: Should this happen earlier?
   ng =  length(enum_raw.Hub.Group);
   if (ng < 1) || (ng > 1)
     error('LUMO file (%s) invalid: file contains more than one group', lf_dir);
@@ -667,14 +666,23 @@ try
     enum.groups(gi).id = uid_hex;
     enum.groups(gi).name = uid_name;
     
-
-    % Over each node (first pass for sorting)
+    
+    % Over each node (first pass for sorting, and accumulating source/detector count)
     nn = length(enum_raw.Hub.Group(gi).Node);
     nodeidsort = zeros(nn, 1);
+    raw_gnq = 0;  % Total number of sources in raw enumeration
+    raw_gnm = 0;  % Total number of detectors in raw enumeration
+    raw_gnw = 2;  % TODO: wavelength number is fixed, this must be gaurded
     for ni = 1:nn
       nodeidsort(ni) = enum_raw.Hub.Group(gi).Node{ni}.node_id;
+       raw_gnq = raw_gnq + length(enum_raw.Hub.Group(gi).Node{ni}.Source)/raw_gnw;
+       raw_gnm = raw_gnm + length(enum_raw.Hub.Group(gi).Node{ni}.Detector);
     end
     [~, node_perm] = sort(nodeidsort);
+    
+    src_g2l = zeros(raw_gnq, raw_gnw, 2); % Global to local mapping for sources
+    det_g2l = zeros(raw_gnm, 2);          % Global to local mapping for detectors
+    src_pwr_g = zeros(raw_gnq, raw_gnw);
     
     % Over each node(second pass for construction)
     for nii = 1:nn
@@ -686,11 +694,6 @@ try
         'rev',      enum_raw.Hub.Group(gi).Node{ni}.revision_id, ...
         'fwver',    enum_raw.Hub.Group(gi).Node{ni}.firmware_version);
       
-      %%% TODO: Add checks described below
-      %%%
-      %%%
-      
-      
       % Build array of sources
       lf_srcs = [enum_raw.Hub.Group(gi).Node{ni}.Source{:}];
       if length(lf_srcs) ~= 6
@@ -700,20 +703,17 @@ try
       % Build the source list in the internal indexing layout, which differs from the
       % ordering used in the LUMO global-spectroscopic format.
       for qi = 1:length(lf_srcs)
-        [cs_srcs_temp, src_idx, src_gi, src_gw, src_pwr] ...
-          = trans_src_desc(lf_srcs(qi), lf_desc.lfver, lf_dir);
+        [cs_srcs_temp, src_idx, src_gi, src_gw, src_pwr] = trans_src_desc(lf_srcs(qi), lf_desc.lfver, lf_dir);
         cs_srcs(src_idx) = cs_srcs_temp;
-        
-        %%% TODO: For robustness this needs to be set up before
-        %%% hand to make sure that we never double assign.
-        %%%
-        
+                
         % Map from LUMO global-spectroscopic to node local
         %
         % This will subsequently be used to map the global system of channels into the node
         % local set.
+        assert(all(src_g2l(src_gi, src_gw, :) == 0));
         src_g2l(src_gi, src_gw, :) = [nii src_idx];
-        src_pwr_g(gi) = src_pwr;
+        assert(src_pwr_g(src_gi, src_gw) == 0);
+        src_pwr_g(src_gi, src_gw) = src_pwr;
       end
       
       % Build array of detectors
@@ -723,16 +723,16 @@ try
       end
       
       for mi = 1:length(lf_dets)
-        [cs_dets_temp, det_idx, det_gi] ...
-          = trans_det_desc(lf_dets(mi), lf_desc.lfver, lf_dir);
+        [cs_dets_temp, det_idx, det_gi] = trans_det_desc(lf_dets(mi), lf_desc.lfver, lf_dir);
         cs_dets(det_idx) = cs_dets_temp;
+        assert(all(det_g2l(det_gi, :) == 0));
         det_g2l(det_gi,:) = [nii det_idx];
       end
       
       % Build array of optodes.
       %
       % This infromation is hard coded, but checks are performed during the construction of
-      % the source and detector arrays to ensure that this representation is consistent. 
+      % the source and detector arrays to ensure that this representation is consistent.
       % Additionally, we check here that the representation is complete.
       srcopt = [cs_srcs(:).optode_idx];
       detopt = [cs_dets(:).optode_idx];
@@ -759,7 +759,7 @@ try
   end
   
 catch e
-  fprintf('LUMO file (%s): an exception ocurred parsing the group enumeration\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): an exception ocurred parsing the group enumeration\n', lf_dir);
   rethrow(e);
 end
 
@@ -776,9 +776,9 @@ try
   else
     rcdata = toml_read_fixup_rc(fullfile(lf_dir, lf_desc.rd_fn));
   end
-catch e   
-    fprintf('LUMO file (%s): error parsing recording data file %s', lf_dir, lf_desc.rd_fn);
-    rethrow(e);
+catch e
+  fprintf(2, 'LUMO file (%s): error parsing recording data file %s\n', lf_dir, lf_desc.rd_fn);
+  rethrow(e);
 end
 
 % Note that from here on in we are certainly using group index 0 (1) as there is presently
@@ -792,7 +792,7 @@ try
   lf_nsrc = rcdata.variables.n_srcs;
   lf_ndet = rcdata.variables.n_dets;
   lf_wls = rcdata.variables.wavelength;
-    
+  
   assert(all(sort(lf_nodes) == [enum.groups(gi).nodes.id]));
   assert(lf_nsrc == size(src_g2l, 1));
   assert(lf_ndet == size(det_g2l, 1));
@@ -805,7 +805,7 @@ try
   assert(all(lf_wls == [735 850]))
   
 catch e
-  fprintf('LUMO file (%s): an exception ocurred whilst asserting group consistency\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): an exception ocurred whilst asserting group consistency\n', lf_dir);
   rethrow(e);
 end
 
@@ -825,7 +825,7 @@ try
   assert(size(lf_chvalid, 1) == lf_nchans);
   
 catch e
-  fprintf('LUMO file (%s): an exception ocurred whilst building channel enumeration\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): an exception ocurred whilst building channel enumeration\n', lf_dir);
   rethrow(e);
 end
 
@@ -856,7 +856,7 @@ for ci = 1:lf_nchans
     'det_idx', l_det_idx);
   
   
-  % The following fields are useful when working data, but they are derived paramters and 
+  % The following fields are useful when working data, but they are derived paramters and
   % can be found by indexing the enumeration quite easily.
   %
   % 'src_node_id', l_src_node_id, ...
@@ -924,7 +924,7 @@ end
 
 % trans_src_desc
 %
-% Translate the .lumo file source descriptions into the canonical node local format. 
+% Translate the .lumo file source descriptions into the canonical node local format.
 % Assertions are required to allow us to build a hard-coded optode array.
 %
 % Function outputs the internal local source index, the reported global-spectroscopic source
@@ -943,7 +943,7 @@ if (lf_ver(1) < 1) && (lf_ver(2) < 4)
 else
   idset = [1 1 5 5 3 3];
 end
-  
+
 switch lf_src.description
   case 'SRCA_735nm'
     src_idx = 1;
@@ -994,8 +994,8 @@ end
 
 % trans_det_desc
 %
-% Translate the .lumo detector descriptions into the canonical node local format. All 
-% indices are zero based. Assertions are required to allow us to build a hard-coded optode 
+% Translate the .lumo detector descriptions into the canonical node local format. All
+% indices are zero based. Assertions are required to allow us to build a hard-coded optode
 % array.
 %
 % Also outputs the global detector index.
@@ -1061,20 +1061,20 @@ end
 % appropriate error if unavailable.
 %
 function fieldval = reqfieldci(s, name, lumodir_fn)
-    
-    names   = fieldnames(s);
-    isField = strcmpi(name,names);  
 
-    if any(isField)
-      fieldval = s.(names{isField});
-    else
-      fieldval = [];
-    end
-    
-    if isempty(fieldval)
-      error('LUMO file (%s): required field %s missing from structure', lumodir_fn, name)
-    end
-    
+names   = fieldnames(s);
+isField = strcmpi(name,names);
+
+if any(isField)
+  fieldval = s.(names{isField});
+else
+  fieldval = [];
+end
+
+if isempty(fieldval)
+  error('LUMO file (%s): required field %s missing from structure', lumodir_fn, name)
+end
+
 end
 
 % optfield

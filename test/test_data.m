@@ -7,7 +7,7 @@
 %   (C) Gowerlabs Ltd., 2022
 %
 
-%% TODO
+%%% TODO
 %
 % Additonal tests required
 %
@@ -49,7 +49,7 @@ layout_12_1_fn = fullfile(path, 'samples', 'layout_12_3735928559.json');
 
 %% Test 1: parse all supported lumo file versions
 
-for i = 1:length(lumo_sample_files)
+for i = 1:length(lumo_sample_fn)
   [enum, data,  events] = lumofile.read_lumo(lumo_sample_fn{i});
 end
 

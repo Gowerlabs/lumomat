@@ -16,7 +16,8 @@ function [layout] = read_layout(fn)
 %
 %     layout:   An structure containing the following fields
 %
-%               id:        
+%               id:        a unique identifier
+%               name:      friendly name for the group
 %               docks:     an array of dock description structures
 %               dockmap:   a mapping from dock id to the docks array indices
 %               landmarks: (optional) an array of structures of named points on the laytout
@@ -60,6 +61,10 @@ function [layout] = read_layout(fn)
 %
 %   (C) Gowerlabs Ltd., 2022
 %
+
+if exist(fn, 'file') ~= 2
+  error('Layour file (%s) cannot be found\n', fn)
+end
 
 try
   layout_raw = jsondecode(fileread(fn));
