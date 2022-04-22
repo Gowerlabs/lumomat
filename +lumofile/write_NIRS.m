@@ -74,6 +74,8 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %
 %   (C) Gowerlabs Ltd., 2022
 %
+%   Portions of code reused from DOT-HUB toolbox with permission.
+%
 
 %%% TODOS
 %

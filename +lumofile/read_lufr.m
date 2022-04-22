@@ -222,7 +222,6 @@ n_infos = 0;
 % Special case the enumeration so we can access it easily
 rc_enum_idx = 0;
 
-% wb = waitbar(ftell(fid)/filesize, 'Scanning records');
 i = 0;
 
 while(~feof(fid))
@@ -313,12 +312,8 @@ while(~feof(fid))
     
     % Increment counter
     i = i+1;
-%     if ~mod(i, 100)
-%         waitbar(ftell(fid)/filesize, wb, sprintf('Scanning frames %d',length(rclength)));
-%     end
-    
+ 
 end
-% close(wb);
 
 if(n_enums < 1)
     error('File does not contain an enumeration block');
@@ -389,9 +384,6 @@ if(apply_filter)
     lin_src_opt = [enum.groups(gidx + 1).channels.src_optode_name].' - 64;    % ASCII 'A' -> 1
     lin_det_opt = [enum.groups(gidx + 1).channels.det_optode_name].' - 47;   % ASCII '0' -> 1
      
-%     % Inform the user
-%     wb = waitbar(0, 'Applying distance filter');
-    
     % Over every entry in the keep list
     k = 1;
     for i = 1:size(chfilter,1)
@@ -406,14 +398,10 @@ if(apply_filter)
         
         chperm(k:(k+n_ch_match-1)) = ch_match;
         k = k+n_ch_match;
-        
-%         if ~mod(i,100)
-%             waitbar(i/size(chfilter,1), wb, sprintf('Applying distance filter %d / %d', i, size(chfilter,1)));
-%         end
-        
+       
     end
     
-%     close(wb);
+
     
     if(any(chperm == 0))
         error('Some entries in the channel keep filter could not be matched');
@@ -458,7 +446,6 @@ gyrdat = zeros(n_nodes, 3, n_mpu, n_frames);        % MPU data (concatenated lat
 
 
 % % Loop over the frames and get them data
-% wb = waitbar(0, 'Processing frames');
 
 i_fr = 1;   % Frame count
 i_if = 1;   % Information block count
@@ -538,13 +525,8 @@ for i = 1:length(rclength)
         i_if = i_if + 1;
     end
     
-%     if ~mod(i,100)
-%         waitbar(i/length(rclength), wb, sprintf('Processing record %d / %d', i, length(rclength)));
-%     end
-    
 end
 
-% close(wb);
 
 % Close the file
 fclose(fid);
@@ -572,9 +554,6 @@ for i = 1:length(enum.groups(gidx + 1).channels)
     satmap(i_src_node_idx, i_src_opt_idx, i_det_node_idx, i_row_idx, i_det_opt_idx) = i;
 end
 
-% Loop over the frames and get them data
-% wb = waitbar(0, 'Building saturation flag matrix');
-
 if(apply_filter)    
      satflag = false(n_schans_keep, n_frames);
 else
@@ -594,14 +573,8 @@ for j = 1:n_frames
         satflag(satchans,j) = true;
     end
     
-%     if ~mod(j,100)
-%         waitbar(j/n_frames, wb, sprintf('Building saturation flag matrix %d / %d', j, n_frames));
-%     end
-
 end
 
-
-% close(wb);
 
 % Reorder MPU data
 dim = size(gyrdat);
