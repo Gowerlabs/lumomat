@@ -436,7 +436,7 @@ Each auxiliary measurement is located in an individual `/nirs(i)/aux(j)` field. 
 
 ## NIRS output
 
-The NIRS file format is used by analysis programs such as HOMER2. A number of processing pipelines and legacy analysis tools may most easily be used with a NIRS file, but we generally recommend that users choose the SNIRF format for data archival and analysis, where possible.
+The NIRS file format is based upon MATLAB output files, and was originally used in the HOMER2 software. Owing to its legacy, a number of existing processing pipelines might most easily be used with data in this format. Whilst a specification is provided for valid NIRS files, variations on the format are commonly encountered. We recommend that when possible, users prefer the SNIRF format for their data archival and analysis.
 
 To construct a NIRS structure and write a NIRS file:
 
@@ -455,19 +455,12 @@ The NIRS file contains an `SD` structure which describes the physical configurat
  data.write_NIRS(filename, 'sd_style', 'flat');
 ```
 
-*Note: The channel list in a NIRS file is re-indexed such that it is sorted by (wavelength, source index, detector index), as this is assumed in some analysis software. The sorting permutation is retained in the additional variable `lumo.chn_sort_perm` in case the original ordering is required*
+*Note: The channel list in a NIRS file is re-indexed such that it is sorted by (wavelength, source index, detector index), as this is assumed in some analysis software.*
 
 ### Additional LUMO specific fields:
 
- - `lumo.chn_sat`: a logical vector (or matrix) indicating if a channel is saturated. If this field is a vector, a non-zero (or logical true) entry in the `i`th index indicates that the `i`th channel was saturated at some point in the recording. Since transient effects such as movement can cause temporary saturation, the use of a single flag for each channel can cause the loss of a number of channels which are useful for a large proportion of the recording. More recent versions of the LUMOview software will output data which permits allows this field to be output as a matrix of values such that saturation can be identified per-channel, per-frame, allowing for more granular exclusion of saturated data. Contact Gowerlabs to update your software if this feature is desired.
- - `lumo.src_pwr`: a vector of source powers expressed in percent, for each channel.
- - `lumo.chn_sort_perm`: a permutation array which allows restoration of canonical channel ordering.
-
-### Optional and compatibility fields:
-
- - `SD.MeasListAct`: an vector of length (*no. channels*) to permit manual channel pruning, initialised by the exporter to include all channels
- - `SD.MeasListActSat`: an array indicating if a channel should be included based on saturation, used by the DOT-HUB toolbox.
-
+ - `SD.MeasListActSat`: a logical vector (or matrix) indicating if a channel is saturated. If this field is a vector, a non-zero (or logical true) entry in the `i`th index indicates that the `i`th channel was saturated at some point in the recording. Since transient effects such as movement can cause temporary saturation, the use of a single flag for each channel can cause the loss of a number of channels which are useful for a large proportion of the recording. More recent versions of the LUMOview software will output data which permits allows this field to be output as a matrix of values such that saturation can be identified per-channel, per-frame, allowing for more granular exclusion of saturated data. Contact Gowerlabs to update your software if this feature is desired.
+ - `SD.SrcPowers`: a matrix of source powers expressed in percent, indexed by the global source index and wavelength. 
 
 # Low-level functional API
 
