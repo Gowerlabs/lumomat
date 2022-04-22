@@ -24,16 +24,15 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 %                                wavelengths.
 %                             2. Rename landmarks: Al -> LPA, Ar -> RPA, Nasion -> NASION
 %
-%   'lumometa': Include an additional set of metadata under `/nirs(i)/metaDataTags/lumo`
+%   'meta':     Include an additional set of metadata under `/nirs(i)/metaDataTags/lumo`
 %               containing a an abbreviated and flattened representation of the canonical
 %               layout.
 %
-%               Enabling this option prevents validation. It is unclear if this is due to a
-%               specification violation or a bug in the validator. This option may be
+%               Enabling this option prevents official validation. This option may be
 %               updated pending: https://github.com/fNIRS/snirf/issues/110
 %
-%               'true':   (defualt) include metadata
-%               'false':  supress inclusion of metadata
+%               'standard':   (default) no extended metadata   
+%               'extended':   write additional metadata
 %
 %   Returns:
 %
@@ -74,11 +73,12 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 % Get optional inputs
 p = inputParser;
 expected_styles = {'standard', 'mne-nirs'};
+expected_styles_meta = {'standard', 'extended'};
 addOptional(p, 'style', 'standard', @(x) any(validatestring(x, expected_styles)));
-addOptional(p, 'lumometa', true, @islogical);
+addOptional(p, 'meta', 'standard', @(x) any(validatestring(x, expected_styles_meta)));
 parse(p, varargin{:})
 style = p.Results.style;
-write_lumo_metadata = p.Results.lumometa;
+meta_style = p.Results.meta;
 
 
 ng = length(enum.groups);
@@ -154,21 +154,19 @@ for gidx = 1:ng
   
   % LUMO sepcific fields
   mdt.ManufacturerName = write_var_string(nirs_meta_group, 'ManufacturerName', 'Gowerlabs');
-  mdt.Mode = write_var_string(nirs_meta_group, 'Model', 'LUMO');
+  mdt.Model = write_var_string(nirs_meta_group, 'Model', 'LUMO');  
+  mdt.lumomatVersion = write_var_string(nirs_meta_group, 'lumomatVersion', lumomat.ver());
+  mdt.groupID = write_var_string(nirs_meta_group, 'groupID', enum.groups(gidx).id);
+  mdt.groupName = write_var_string(nirs_meta_group, 'groupName', enum.groups(gidx).name); 
   
-  if write_lumo_metadata
+  % Write global saturation
+  mdt.saturationFlags = write_int8(nirs_meta_group, 'saturationFlags', any(data(gidx).chn_sat, 2));
+
+  
+  if strcmp(meta_style, 'extended')
+    
     % LUMO specific metadata
     lumo_md_group = create_group(nirs_meta_group, 'lumo');
-
-    mdt.lumo.lumomatVersion = write_var_string(lumo_md_group, 'lumomatVersion', lumomat.ver());
-
-    % Write global saturation
-    mdt.lumo.saturationFlags = write_int8(lumo_md_group, 'saturationFlags', any(data(gidx).chn_sat, 2));
-
-    %%% Output hub and group information
-    mdt.lumo.hubSerialNumber = write_var_string(lumo_md_group, 'hubSerialNumber', string(enum.hub.serial));
-    mdt.lumo.groupID = write_var_string(lumo_md_group, 'groupID', enum.groups(gidx).id);
-    mdt.lumo.groupName = write_var_string(lumo_md_group, 'groupName', enum.groups(gidx).name);
 
     %%% Output the canonical map
     dockmap = enum.groups(gidx).layout.dockmap;

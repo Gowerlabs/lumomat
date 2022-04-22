@@ -193,7 +193,7 @@ else
       enum.groups(gi).layout = lumofile.read_layout(layout_override);
       fprintf('LUMO file using user-specified layout file\n');
     catch e
-      fprintf('An error occurred loading the specified layout file %s', layout_override);
+      fprintf(2, 'An error occurred loading the specified layout file %s\n', layout_override);
       rethrow e
     end
     
@@ -281,7 +281,7 @@ try
   raw = fileread(metadata_fn);
   metadata = lumofile.toml.decode(raw);
 catch e
-  fprintf('LUMO file (%s): error parsing metadata file %s\n', lf_dir, metadata_fn);
+  fprintf(2, 'LUMO file (%s): error parsing metadata file %s\n', lf_dir, metadata_fn);
   rethrow(e);
 end
 
@@ -291,7 +291,7 @@ lf_ver = reqfield(metadata, 'lumo_file_version', lf_dir);
 try
   lf_ver_num = str2double(strsplit(lf_ver, '.'));
 catch e
-  fprintf('LUMO file (%s): error parsing fiile version number\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): error parsing fiile version number\n', lf_dir);
   rethrow(e)
 end
 
@@ -430,7 +430,7 @@ try
     
   end
 catch e
-  fprintf('LUMO file (%s) invalid: error parsing intensity structure from file %s', ...
+  fprintf(2, 'LUMO file (%s) invalid: error parsing intensity structure from file %s\n', ...
     lf_dir, lf_meta_rd_fn);
   rethrow(e);
 end
@@ -533,7 +533,7 @@ try
   raw = fileread(fullfile(lf_dir, lf_desc.ev_fn));
   events_raw = lumofile.toml.decode(raw);
 catch e
-  fprintf('LUMO file (%s) invalid: error parsing events file %s', lf_dir, lf_desc.ev_fn);
+  fprintf(2, 'LUMO file (%s) invalid: error parsing events file %s\n', lf_dir, lf_desc.ev_fn);
   rethrow(e);
 end
 
@@ -558,7 +558,7 @@ else
       
     end
   catch e
-    fprintf('LUMO file (%s): error parsing events structure from file %s', lf_dir, lf_desc.ev_fn);
+    fprintf(2, 'LUMO file (%s): error parsing events structure from file %s\n', lf_dir, lf_desc.ev_fn);
     rethrow(e);
   end
   
@@ -592,7 +592,7 @@ try
     enum_raw = toml_read_fixup_hw(fullfile(lf_dir, lf_desc.hw_fn));
   end
 catch e
-  fprintf('LUMO file (%s) invalid: error parsing (fixed) hardware file %s', lf_dir, lf_desc.hw_fn);
+  fprintf(2, 'LUMO file (%s) invalid: error parsing (fixed) hardware file %s\n', lf_dir, lf_desc.hw_fn);
   rethrow(e);
 end
 
@@ -639,7 +639,7 @@ try
   
   
 catch e
-  fprintf('LUMO file (%s): an exception ocurred parsing the hub enumeration\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): an exception ocurred parsing the hub enumeration\n', lf_dir);
   rethrow(e);
 end
 
@@ -759,7 +759,7 @@ try
   end
   
 catch e
-  fprintf('LUMO file (%s): an exception ocurred parsing the group enumeration\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): an exception ocurred parsing the group enumeration\n', lf_dir);
   rethrow(e);
 end
 
@@ -777,7 +777,7 @@ try
     rcdata = toml_read_fixup_rc(fullfile(lf_dir, lf_desc.rd_fn));
   end
 catch e
-  fprintf('LUMO file (%s): error parsing recording data file %s', lf_dir, lf_desc.rd_fn);
+  fprintf(2, 'LUMO file (%s): error parsing recording data file %s\n', lf_dir, lf_desc.rd_fn);
   rethrow(e);
 end
 
@@ -805,7 +805,7 @@ try
   assert(all(lf_wls == [735 850]))
   
 catch e
-  fprintf('LUMO file (%s): an exception ocurred whilst asserting group consistency\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): an exception ocurred whilst asserting group consistency\n', lf_dir);
   rethrow(e);
 end
 
@@ -825,7 +825,7 @@ try
   assert(size(lf_chvalid, 1) == lf_nchans);
   
 catch e
-  fprintf('LUMO file (%s): an exception ocurred whilst building channel enumeration\n', lf_dir);
+  fprintf(2, 'LUMO file (%s): an exception ocurred whilst building channel enumeration\n', lf_dir);
   rethrow(e);
 end
 

@@ -140,6 +140,13 @@ chfilter = p.Results.chfilter;       % Channel optode-pair filtering matrix
 gidx = p.Results.group-1;            % Selected group index for hyperscanning data
 layout_override = p.Results.layout;
 
+if exist(lufrfn, 'file') ~= 2
+  error('The specified LUFR file (%s) cannot be found', lufrfn)
+else
+  fprintf('Loading LUFR file %s\n', lufrfn);
+end
+
+
 if(~isempty(chfilter))
     
     if(size(chfilter,2) ~= 4)
@@ -163,10 +170,6 @@ tag_event = 4;
 n_wl_min = 2;
 
 % Open the file
-if(~isfile(lufrfn))
-    error('The lufr file %s cannot be found', lufrfn);
-end
-
 fid = fopen(lufrfn, 'rb');
 
 % Get file size
@@ -184,12 +187,14 @@ end
 filever = fread(fid, 1, 'uint8=>double');
 if(filever ~= 1 && filever ~=2)
     error('The lumo frame file is of an unknown version %i', filever);
+else
+  fprintf('LUFR file version %d\n', filever);
 end
 
 % On version two, we will need to set the particular group index from
 % which we wish to extract data
 if(filever > 1)
-    fprintf('Group index %d selected \n', gidx);
+    fprintf('LUFR file group index %d selected \n', gidx);
 end
 
 % Skip over zeros
@@ -252,7 +257,7 @@ while(~feof(fid))
     % enumerations so it doesn't matter if this is overwritten
     
     if(recordtag == tag_enumeration)
-        fprintf('Found enumeration at tag %d\n', rc_enum_idx);
+        fprintf('LUFR file enumeration found at tag %d\n', rc_enum_idx);
         rc_enum_idx = length(rctag);
     end
     
@@ -286,7 +291,7 @@ while(~feof(fid))
         else
             % Subsequently, check no changes have happned
             if ~all(sizeparam(2:end) == sizeparam_ref(2:end))
-                error('Frame data varies, I cannot handle it');
+                error('LUFR file invalid: frame data dimensions vary');
             end
             
         end
@@ -316,17 +321,17 @@ while(~feof(fid))
 end
 
 if(n_enums < 1)
-    error('File does not contain an enumeration block');
+    error('LUFR file does not contain an enumeration block');
 end
 
 if(n_enums > 1)
-    error('File contains more than one enumeration block');
+    error('LUFR file contains more than one enumeration block');
 end
 
 if length(rclength) == record_count
-    fprintf('File contains %d records, %d frames, %d events \n', length(rclength), n_frames, n_events);
+    fprintf('LUFR file contains %d records, %d frames, %d events \n', length(rclength), n_frames, n_events);
 else
-    warning('Found %d records, %d frames, %d events in the input data file\n', length(rclength), n_frames, n_events);
+    warning('LUFR file found %d records, %d frames, %d events in the input data file\n', length(rclength), n_frames, n_events);
 end
 
 % Work with the metadata
@@ -356,7 +361,7 @@ fprintf('done\n');
 % Fix enmeration acquistion data in some versions
 if(isfield(enum, 'group'))
     
-    fprintf('Fixing enumeration structure error\n');
+    fprintf('LUFR file contains imperfect structure, fixing...\n');
     
     % Merge fields into correct structure. Note that versions with this
     % erroneous field naming did not have hyperscanning support, so the
@@ -408,7 +413,7 @@ if(apply_filter)
     end
     
     n_schans_keep = length(chperm);
-    fprintf('Channel filtering complete, found %d channels\n', n_schans_keep);
+    fprintf('LUFR file channel filtering complete, found %d channels\n', n_schans_keep);
     
 else
     
@@ -429,7 +434,7 @@ n_row    = sizeparam_ref(9);
 tchdat = sizeparam_ref(2)*1e-6; %in seconds
 fps = 1/(sizeparam_ref(2)*1e-6);
 
-fprintf('Frame rate is %.2f fps\n', fps);
+fprintf('LUFR file channel frame rate is %.2f fps\n', fps);
 
 if(apply_filter)
     chdat = zeros(n_schans_keep, n_frames, 'single');   % Channel data
@@ -535,7 +540,7 @@ fclose(fid);
 % Build the saturation flag matrix
 det_sat_limit = 97.5;
 
-fprintf('Building saturation channel mapping\n');
+fprintf('LUFR file building saturation channel mapping... ');
 
 % Build a [src_node_id x src x det_node_id x row x det] -> channel mapping
 n_srcdim_max = 6;
@@ -574,6 +579,9 @@ for j = 1:n_frames
     end
     
 end
+
+
+fprintf('done\n');
 
 
 % Reorder MPU data
