@@ -92,6 +92,8 @@ for i = 1:length(lumo_sample_files)
     warning('Data norm exceeds 1x10^-6');
   end
   
+  assert(norm(nirs_sample.d - nirs_test.d) < 1)
+    
   % SD
   assert(nirs_sample.SD.nSrcs == nirs_test.SD.nSrcs);
   assert(nirs_sample.SD.nDets == nirs_test.SD.nDets);
