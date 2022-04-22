@@ -89,7 +89,7 @@ for i = 1:length(lumo_sample_files)
   assert(norm(nirs_sample.t - nirs_test.t) < 1e-9)
   
   if norm(nirs_sample.d - nirs_test.d) > 1e-6
-    warning('Data norm exceeds 1x10^6');
+    warning('Data norm exceeds 1x10^-6');
   end
   
   % SD
@@ -124,7 +124,7 @@ for i = 1:length(lumo_sample_files)
   assert(norm(nirs_sample.t - nirs_test.t) < 1e-9)
   
   if norm(nirs_sample.d - nirs_test.d) > 1e-6
-    warning('Data norm exceeds 1x10^6');
+    warning('Data norm exceeds 1x10^-6');
   end
   
   % SD - note that we can compare the sample SD3D to the test SD here because the standard

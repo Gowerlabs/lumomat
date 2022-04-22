@@ -138,6 +138,7 @@ SD.Lambda = glwl;
 %
 SD.SrcPos = zeros(SD.nSrcs, 3);
 SD.DetPos = zeros(SD.nDets, 3);
+SD.SrcPowers = zeros(SD.nSrcs, 2);
 SD.SpatialUnit = 'mm';          % Out of spec but required by DHT
 
 if strcmp(sdstyle,'flat')
@@ -153,6 +154,12 @@ for qi = 1:SD.nSrcs
   oidx = glsrc(qi).optode_idx;
   nid = enum.groups(gi).nodes(nidx).id;
   didx = layout.dockmap(nid);
+  
+ % Get the nodes sources, find those on the optode
+ nd_srcs = enum.groups.nodes(nidx).srcs;
+ nd_oidx = [nd_srcs.optode_idx] == oidx;
+ assert(all([nd_srcs(nd_oidx).wl] == [735 850]));
+ SD.SrcPowers(qi,:) = [nd_srcs(nd_oidx).power];
   
   switch sdstyle
     case 'standard'
@@ -205,16 +212,6 @@ SD.MeasList(:,1) = glch(:,1);           % Global source index
 SD.MeasList(:,2) = glch(:,3);           % Global detector index
 SD.MeasList(:,3) = 1;                   % Always one
 SD.MeasList(:,4) = glch(:,2);           % Global wavelength index
-
-% Build source powers
-%
-src_pwr = zeros(size(glch,1),1);
-for ci = 1:size(glch,1)
-    ch = enum.groups(gi).channels(ci);
-    src_node_idx = ch.src_node_idx;
-    src_node = enum.groups(gi).nodes(src_node_idx);
-    src_pwr(ci) = src_node.srcs(ch.src_idx).power;
-end
 
 % Build event (stimulus) maitrx
 %
@@ -269,14 +266,15 @@ SD.MeasListAct = ones(size(SD.MeasList, 1), 1);
 %
 % This is a DOT-HUB extension which encodes if a channel is -ever- saturated. The full data
 % is exposed int the lumoext structure.
-SD.MeasListActSat = any(data(gi).chn_sat, 2);
-SD.MeasListActSat = SD.MeasListActSat(perm);
+SD.MeasListActSat = data(gi).chn_sat;
+SD.MeasListActSat = SD.MeasListActSat(perm,:);
 
 % Apply to 3D structure
 if strcmp(sdstyle,'flat')
   SD3D.MeasList = SD.MeasList;
   SD3D.MeasListAct = SD.MeasListAct;
   SD3D.MeasListActSat = SD.MeasListActSat;
+  SD3D.SrcPowers = SD.SrcPowers;
 end
 
 % A duplicate entry is specified for unknown reasons
@@ -296,8 +294,6 @@ end
 
 % Add lumo extension variables
 nirs.lumo.chn_sort_perm = perm;
-nirs.lumo.chn_sat = data(gi).chn_dat;
-nirs.lumo.src_pwr = src_pwr;
 
 end
 
