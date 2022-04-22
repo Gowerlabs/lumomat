@@ -160,7 +160,7 @@ for gidx = 1:ng
   mdt.groupName = write_var_string(nirs_meta_group, 'groupName', enum.groups(gidx).name); 
   
   % Write global saturation
-  mdt.saturationFlags = write_int8(nirs_meta_group, 'saturationFlags', any(data(gidx).chn_sat, 2));
+  mdt.saturationFlags = write_int32(nirs_meta_group, 'saturationFlags', any(data(gidx).chn_sat, 2));
 
   
   if strcmp(meta_style, 'extended')
@@ -298,7 +298,7 @@ for gidx = 1:ng
       nirs_aux_sat = create_group(nirs_group, ['aux' num2str(auxi)]); 
       snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_sat, 'name', 'saturationFlags');
       snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_sat, 'time', [0 data(gidx).chn_dt]);
-      snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_int8(nirs_aux_sat, 'dataTimeSeries', data(gidx).chn_sat.');
+      snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_int32(nirs_aux_sat, 'dataTimeSeries', data(gidx).chn_sat.');
       H5G.close(nirs_aux_sat);
       auxi = auxi+1;
   end

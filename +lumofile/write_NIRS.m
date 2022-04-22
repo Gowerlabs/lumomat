@@ -31,6 +31,13 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %                            which contains the full three dimensional layout. This format
 %                            is used by the DOT-HUB toolbox.
 %
+%   'evtfilt':  Filter certain event markers when outputting the NIRS structure
+%
+%               true:       (default) hyperscanning start ('$') and newline event markers
+%                           are filtered from the output data.
+%
+%               false:      events are written as found.
+%
 %   'group':    An integer specifiying the group index of the enumeration to map. Defaults to
 %               group index 1.
 %   Returns:
@@ -74,8 +81,6 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %
 %   (C) Gowerlabs Ltd., 2022
 %
-%   Portions of code reused from DOT-HUB toolbox with permission.
-%
 
 %%% TODOS
 %
@@ -98,10 +103,12 @@ p = inputParser;
 expected_styles = {'standard', 'flat', 'dhtoolbox'};
 addOptional(p, 'sd_style', 'standard', @(x) any(validatestring(x, expected_styles)));
 addOptional(p, 'group', 1, @(x) (isnumeric(x) && x > 0));
+addOptional(p, 'evtfilt', true, @islogical);
 parse(p, varargin{:})
 
 gi = p.Results.group;
 sdstyle = p.Results.sd_style;
+event_filter = p.Results.evtfilt;
 
 % Check the group index is sensible
 if (gi > length(enum.groups)) || (gi > length(data))
@@ -138,6 +145,7 @@ SD.Lambda = glwl;
 %
 SD.SrcPos = zeros(SD.nSrcs, 3);
 SD.DetPos = zeros(SD.nDets, 3);
+SD.SrcPowers = zeros(SD.nSrcs, 2);
 SD.SpatialUnit = 'mm';          % Out of spec but required by DHT
 
 if strcmp(sdstyle,'flat')
@@ -153,6 +161,12 @@ for qi = 1:SD.nSrcs
   oidx = glsrc(qi).optode_idx;
   nid = enum.groups(gi).nodes(nidx).id;
   didx = layout.dockmap(nid);
+  
+ % Get the nodes sources, find those on the optode
+ nd_srcs = enum.groups.nodes(nidx).srcs;
+ nd_oidx = [nd_srcs.optode_idx] == oidx;
+ assert(all([nd_srcs(nd_oidx).wl] == [735 850]));
+ SD.SrcPowers(qi,:) = [nd_srcs(nd_oidx).power];
   
   switch sdstyle
     case 'standard'
@@ -206,46 +220,35 @@ SD.MeasList(:,2) = glch(:,3);           % Global detector index
 SD.MeasList(:,3) = 1;                   % Always one
 SD.MeasList(:,4) = glch(:,2);           % Global wavelength index
 
-% Build source powers
-%
-src_pwr = zeros(size(glch,1),1);
-for ci = 1:size(glch,1)
-    ch = enum.groups(gi).channels(ci);
-    src_node_idx = ch.src_node_idx;
-    src_node = enum.groups(gi).nodes(src_node_idx);
-    src_pwr(ci) = src_node.srcs(ch.src_idx).power;
-end
-
 % Build event (stimulus) maitrx
 %
 % LUMO records characters and strings as event markers, which differs from the way that
 % stimuli are encoded in NIRS. There is no unambiguous mapping so we implement the approach
 % taken in the DOT-HUB toolbox. The following implementation is derived from this code,
-% under the GPLv3.
-%
-% License: https://github.com/DOT-HUB/DOT-HUB_toolbox/blob/master/LICENSE
-%
+% relicensed with permission (original GPLv3).
+%    
 if ~isempty(events)
   
-  for i = 1:length(events)
-    timeStamp(i) = events(i).timestamp;
-    eventStr{i} = events(i).mark;
+  if event_filter
+    events = events([events.mark] ~= newline);
+    events = events([events.mark] ~= '$');
   end
   
-  % Find unique events, maintain order in which they occured
-  [tmp, ~, occuranceInd] = unique(eventStr, 'stable');
+  % Convert to seconds
+  timeStamp = [events.timestamp];
+  eventStr = {events.mark};
   
   % Extract condition names
-  CondNames = arrayfun(@cellstr, tmp);
+  CondNames = unique(eventStr,'stable');
   nc = size(CondNames,2);
   
   s = zeros(size(t,1), nc);
   
-  for i = 1:nc
-    timeStampTmp = timeStamp(occuranceInd == i); %Can have multiple entries
-    [~, indTmp] = min(abs(repmat(t, 1, length(timeStampTmp)) ...
-      - repmat(timeStampTmp, size(t, 1), 1)));
-    s(indTmp,i) = 1;
+  % Get each timestamp and pull it to the nearest experimental timepoint
+  for i = 1:length(timeStamp)
+    [~,ind] = min(abs(t - timeStamp(i)));
+    cond = find(strcmp(CondNames, eventStr(i)));
+    s(ind, cond) = 1;
   end
   
 else
@@ -269,14 +272,15 @@ SD.MeasListAct = ones(size(SD.MeasList, 1), 1);
 %
 % This is a DOT-HUB extension which encodes if a channel is -ever- saturated. The full data
 % is exposed int the lumoext structure.
-SD.MeasListActSat = any(data(gi).chn_sat, 2);
-SD.MeasListActSat = SD.MeasListActSat(perm);
+SD.MeasListActSat = data(gi).chn_sat;
+SD.MeasListActSat = SD.MeasListActSat(perm,:);
 
 % Apply to 3D structure
 if strcmp(sdstyle,'flat')
   SD3D.MeasList = SD.MeasList;
   SD3D.MeasListAct = SD.MeasListAct;
   SD3D.MeasListActSat = SD.MeasListActSat;
+  SD3D.SrcPowers = SD.SrcPowers;
 end
 
 % A duplicate entry is specified for unknown reasons
@@ -296,8 +300,6 @@ end
 
 % Add lumo extension variables
 nirs.lumo.chn_sort_perm = perm;
-nirs.lumo.chn_sat = data(gi).chn_dat;
-nirs.lumo.src_pwr = src_pwr;
 
 end
 

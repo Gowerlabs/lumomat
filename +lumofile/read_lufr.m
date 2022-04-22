@@ -747,11 +747,12 @@ if isfield(enum.groups(gidx + 1), 'layout')
   lumomat.validate_layout(enum);
 end
 
-% Build event output structure
+% Build event output structure 
 ne = length(evtim);
 if ne > 0
   for i = 1:ne
-    events(i) = struct('mark', convertStringsToChars(evstr{i}), 'timestamp', evtim(i));
+    % Note that events are stored in seconds
+    events(i) = struct('mark', convertStringsToChars(evstr{i}), 'timestamp', evtim(i)*1e-3);
   end
 else
   events = [];

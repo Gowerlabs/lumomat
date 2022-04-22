@@ -67,5 +67,5 @@ end
 % have to manually validate the files, e.g., 
 %
 % >> from pysnirf2 import validateSnirf
-% >> result = validateSnirf(r'samples\sample.snirf.snirf')
+% >> result = validateSnirf(r'samples\sample.snirf')
 % >> assert result
