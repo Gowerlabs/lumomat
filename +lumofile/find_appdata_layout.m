@@ -1,4 +1,4 @@
-function [layout_file_dir, layout_file_name] = check_app_data_for_layout(group_id)
+function [layout_file_dir, layout_file_name] = find_appdata_layout(group_id)
 % LUMOFILE.check_app_data_for_layout extracts the apropriate appData if it
 % exists, otherwise throws an error.
 % group_id can either be a numeric or string type.
