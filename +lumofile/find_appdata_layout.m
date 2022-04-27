@@ -1,10 +1,10 @@
-function [layout_file_dir, layout_file_name] = find_appdata_layout(group_id)
 % LUMOFILE.check_app_data_for_layout extracts the apropriate appData if it
 % exists, otherwise throws an error.
 % group_id can either be a numeric or string type.
 % If it's a string type, group id should either be a decimal represented by
 % having only digits, or a hexadecimal which starts with a "0x" followed by
 % digits and the characters 'a'-'f' or 'A'-'F'.
+function [layout_file_path] = find_appdata_layout(group_id)
 
 %% Get Directory
 local_app_data_environment = getenv('localappdata');
@@ -88,3 +88,5 @@ layout_file_name = "coordinates_" + group_id_num + ".json";
 if(not(isfile(fullfile(layout_file_dir, layout_file_name))))
     error("Unable to retrieve layout files: file does not exist on this computer.");
 end
+
+layout_file_path = fullfile(layout_file_dir, layout_file_name);
