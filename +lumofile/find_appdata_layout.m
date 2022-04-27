@@ -11,7 +11,9 @@ local_app_data_environment = getenv('localappdata');
 
 % Check if localappdata directory exists
 if(isempty(local_app_data_environment))
-    error("Unable to retrieve layout files: This Operating System does not have a localappdata environment.");
+    warning("Unable to retrieve layout files: This Operating System does not have a localappdata environment.");
+    layout_file_path = [];
+    return;
 end
 
 % Get Directory with layout files
@@ -19,7 +21,9 @@ layout_file_dir = fullfile(local_app_data_environment, "Gowerlabs", "Lumo");
 
 % Check if directory exists
 if(not(isfolder(layout_file_dir)))
-    error("Unable to retrieve layout files: This machine either doesn't have the LumoView software installed, or was never had it used before.");
+    warning("Unable to retrieve layout files: This machine either doesn't have the LumoView software installed, or was never had it used before.");
+    layout_file_path = [];
+    return;
 end
 
 %% Get group_id
@@ -39,10 +43,14 @@ else
         elseif(isa(group_id{1},'string'))
             group_id_str = group_id;
         else
-            error("Unable to retrieve layout files: group_id is not a char, cell with a char or numeric type.");
+            warning("Unable to retrieve layout files: group_id is not a char, cell with a char or numeric type.");
+            layout_file_path = [];
+            return;
         end
     else
-        error("Unable to retrieve layout files: group_id is not a char, cell with a char or numeric type.");
+        warning("Unable to retrieve layout files: group_id is not a char, cell with a char or numeric type.");
+        layout_file_path = [];
+        return;
     end
     
     %Checking if char contains hex or dec value.
@@ -70,7 +78,9 @@ else
             group_id_num = group_id_str;
         end
     catch
-        error("Unable to retrieve layout files: group_id contains invalid characters.");
+        warning("Unable to retrieve layout files: group_id contains invalid characters.");
+        layout_file_path = [];
+        return;
     end
     
     %Check for precision, because this value can be any UInt64 value, but
@@ -86,7 +96,9 @@ end
 layout_file_name = "coordinates_" + group_id_num + ".json";
 
 if(not(isfile(fullfile(layout_file_dir, layout_file_name))))
-    error("Unable to retrieve layout files: file does not exist on this computer.");
+    warning("Unable to retrieve layout files: file does not exist on this computer.");
+    layout_file_path = [];
+    return;
 end
 
 layout_file_path = fullfile(layout_file_dir, layout_file_name);
