@@ -1,10 +1,10 @@
-% LUMOFILE.check_app_data_for_layout extracts the apropriate appData if it
-% exists, otherwise throws an error.
-% group_id can either be a numeric or string type.
-% If it's a string type, group id should either be a decimal represented by
-% having only digits, or a hexadecimal which starts with a "0x" followed by
-% digits and the characters 'a'-'f' or 'A'-'F'.
 function [layout_file_path] = find_appdata_layout(group_id)
+% LUMOFILE.find_appdata_layout finds the apropriate appData if it exists
+% and returns it's full path as a string, otherwise it returns an empty
+% matrix.
+
+% Group_id refers to the id of the cap, this value can be found on the cap
+% and used as an input for this function.
 
 %% Get Directory
 local_app_data_environment = getenv('localappdata');
