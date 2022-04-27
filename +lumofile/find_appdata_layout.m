@@ -48,9 +48,22 @@ else
     %Checking if char contains hex or dec value.
     
     try
-        if(extractBetween(group_id_str, 1, 2) == "0x");
+        first2Chars = extractBetween(group_id_str, 1, 2) == "0x"
+        
+        if(first2Chars == "0x")
+        %% Group ID is in hexadecimal
             group_id_str_arr = split(group_id_str,"x");
             group_id_num = hex2dec(group_id_str_arr{2});
+             
+        elseif(first2Chars == "GA")
+        %% Group ID is using V2 Cap IDs
+            group_id_str_arr = split(group_id_str,"A");
+            group_id_num = group_id_str_arr{2};
+             
+        elseif(first2Chars == "C0")
+        %% Group ID is using V1 cap IDs
+            group_id_num = base2dec{group_id_str};
+            
         else
             %Check if valid number
             str2num(group_id_str);
