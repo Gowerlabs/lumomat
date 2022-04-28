@@ -45,3 +45,28 @@ end
 
 output_metadata = metadata;
 
+%% Parse version information
+
+lf_missing_layout_ver = [0 0 1; 0 1 0; 0 1 1; 0 4 0];
+
+lf_ver = reqfield(metadata, 'lumo_file_version', lf_dir);
+try
+  lf_ver_num = str2double(strsplit(lf_ver, '.'));
+catch e
+  fprintf(2, 'LUMO file (%s): error parsing fiile version number\n', lf_dir);
+  rethrow(e)
+end
+
+% We need to get the (required) file name field here, in order to deal with a version number
+% ambiguity whereby 0.2.0 files can report as 0.1.1.
+lf_meta_fns = reqfield(metadata, 'file_names');
+if all(lf_ver_num == [0 1 1])
+  if isfield(lf_meta_fns, 'hardware_file')
+    lf_ver_num = [0 2 0];
+  end
+end
+
+if ~ismember(lf_known_ver, lf_ver_num, 'rows')
+    warning('This lumo file version should already contain a layout file.')
+end
+
