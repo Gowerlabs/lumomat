@@ -30,3 +30,18 @@ end
 %% Reading and opening the Meta Data file
 
 metadata_fn = fullfile(input_lumo_directory, 'metadata.toml');
+
+if exist(metadata_fn, 'file') ~= 2
+  error('LUMO file (%s): invalid metadata not found\n', lf_dir)
+end
+
+try
+  raw = fileread(metadata_fn);
+  metadata = lumofile.toml.decode(raw);
+catch e
+  fprintf(2, 'LUMO file (%s): error parsing metadata file %s\n', lf_dir, metadata_fn);
+  rethrow(e);
+end
+
+output_metadata = metadata;
+
