@@ -46,7 +46,11 @@ for i = 1:length(group_id_samples)
  
 end
 
-%% Test 2: locate layout files (requires LumoView to be installed)
+%% Test 2: check for layout present warning
+
+for i = 1:length(lumo_xc_sample_fn)
+  [enum, data,  events] = lumofile.read_lumo(lumo_xc_sample_fn{1});
+end
 
 
 %% Test 3: merge layout files
