@@ -84,3 +84,10 @@ if ~ismember(lf_known_ver, lf_ver_num, 'rows')
     warning('This lumo file version should already contain a layout file.');
 end
 
+%% Set output file layout_file to hardware_file if applicable.
+
+lf_meta_fns = reqfield(metadata, 'file_names');
+
+if ~isfield(lf_meta_fns, 'hardware_file')
+    output_metadata.file_names.hardware_file = lf_meta_fns.lf_meta_fns;
+end
