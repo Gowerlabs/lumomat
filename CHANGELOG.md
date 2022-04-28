@@ -3,6 +3,7 @@
 ## v1.1.0 (master)
 
  - read LUMO files v0.5
+ - add `merge_layout` function to integrate layouts into LUMO files
 
 ## v1.0.0
 
