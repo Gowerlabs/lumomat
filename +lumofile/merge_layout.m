@@ -91,3 +91,35 @@ lf_meta_fns = reqfield(metadata, 'file_names');
 if ~isfield(lf_meta_fns, 'hardware_file')
     output_metadata.file_names.hardware_file = lf_meta_fns.lf_meta_fns;
 end
+
+%% Construct output directory if applicable
+
+if input_lumo_directory ~= output_lumo_directory
+    
+    %% Create the directory
+    try
+        mkdir(output_lumo_directory)
+    catch e
+        fprintf('Error consturcting output lumo directory: %s\n', output_lumo_directory);
+        rethrow(e);
+    end
+    
+    %% copy files
+    file_names = dir(input_lumo_directory);
+    
+    for i = 1 : length(file_names)
+        file_name = file_names{i};
+        
+        try
+            if(file_name ~= "metadata.toml")
+                copyfile(fullfile(input_lumo_directory, file_name),fullfile(output_lumo_directory, file_name));
+            end
+        catch e
+            fprintf('Error copying file %s\n', file_name);
+            rethrow(e);
+        end
+        
+    end
+end
+
+
