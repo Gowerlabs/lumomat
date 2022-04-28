@@ -1,5 +1,7 @@
 function [uid_hex, uid_name] = norm_gid(uid)
-%NORM_GID Normalise an input group UID to hex and name
+%NORM_GID Normalise an input group UID to hex string and name
+%
+% Input must be numeric or a corresponding hexadecimal string
 
    if(uid > (flintmax-1))
         warning('Group ID out of range, recording may be invalid');
@@ -26,4 +28,3 @@ function [uid_hex, uid_name] = norm_gid(uid)
   uid_name = group_name;
 
 end
-
