@@ -81,6 +81,6 @@ if all(lf_ver_num == [0 1 1])
 end
 
 if ~ismember(lf_known_ver, lf_ver_num, 'rows')
-    warning('This lumo file version should already contain a layout file.')
+    warning('This lumo file version should already contain a layout file.');
 end
 
