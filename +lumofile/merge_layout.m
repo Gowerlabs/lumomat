@@ -123,3 +123,12 @@ if input_lumo_directory ~= output_lumo_directory
 end
 
 
+%% (over)write layout.json
+        
+try
+    copyfile(layout_file,fullfile(output_lumo_directory, 'layout.json'));
+catch e
+    fprintf('Error copying file %s\n', layout_file);
+    rethrow(e);
+end
+
