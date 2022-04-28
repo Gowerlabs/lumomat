@@ -19,3 +19,14 @@ function merge_layout(input_lumo_directory, layout_file, output_lumo_directory)
 %                               file is defined, then the input directory will be
 %                               overwitten.
 %
+
+%% Check if output_lumo_directory exists, and if not, overwite
+
+if ~exist('output_lumo_directory','var')
+    warning('no output_layout_file_set, overwitting \"' + input_lumo_directory + '\"')
+    output_lumo_directory = input_lumo_directory;
+end
+
+%% Reading and opening the Meta Data file
+
+metadata_fn = fullfile(input_lumo_directory, 'metadata.toml');
