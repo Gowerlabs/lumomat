@@ -56,7 +56,7 @@ else
     %Checking if char contains hex or dec value.
     
     try
-        first2Chars = extractBetween(group_id_str, 1, 2) == "0x"
+        first2Chars = extractBetween(group_id_str, 1, 2)
         
         if(first2Chars == "0x")
         %% Group ID is in hexadecimal
@@ -70,7 +70,7 @@ else
              
         elseif(first2Chars == "C0")
         %% Group ID is using V1 cap IDs
-            group_id_num = base2dec{group_id_str};
+            group_id_num = base2dec(group_id_str,36);
             
         else
             %Check if valid number
