@@ -482,7 +482,7 @@ LUMO file loaded in 11.0s
 Whilst loading the file, information will be printed regarding the contents of the file. Some `.lumo` files might not contain an embedded layout file. If this is the case a warning will be printed.
 
 ```
-Warning: The specified LUMO file does not contain an embedded layout file, and no layout has been specified when calling this function. The returned enumeration will lack layout information, and it will not be possible to convert this file to formats which require a layout. Specify an appropriate layout file to suppress this warning, or copy an appropriate layout to the .LUMO folder in order for it to be used as an automatic fallback. 
+Warning: The specified LUMO file (group C002N / 20155487) does not contain an embedded layout file, and no layout has been specified when calling this function. The returned enumeration will lack layout information, and it will not be possible to convert this file to formats which require a layout. Specify an appropriate layout file to suppress this warning.
 ```
 
 Follow the guidance, or read more about Layouts in a later section.
