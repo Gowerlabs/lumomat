@@ -27,6 +27,20 @@ if ~exist('output_lumo_directory','var')
     output_lumo_directory = input_lumo_directory;
 end
 
+%% Check if the 1st 2 directories exist and the last one doesn't.
+
+if(~exist(input_lumo_directory,'dir'))
+    error('LUMO file (%s): invalid directory not found\n', input_lumo_directory);
+end
+
+if(exist(output_lumo_directory,'dir') && output_lumo_directory ~= input_lumo_directory)
+    error('LUMO file (%s): directory already exists\n', input_lumo_directory);
+end
+
+if(~isfile(layout_file))
+    error('Layout file (%s): invalid directory not found\n', layout_file);
+end
+
 %% Reading and opening the Meta Data file
 
 metadata_fn = fullfile(input_lumo_directory, 'metadata.toml');
