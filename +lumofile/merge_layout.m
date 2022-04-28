@@ -135,3 +135,15 @@ end
 %% set layout.json
 output_metadata.layout_file = 'layout.json'
 
+%% (over)write metadata.toml
+
+try  
+    fid = fopen(fullfile(output_lumo_directory, "meta_data.toml"), 'w');
+    fprintf(fid, '%s', lumofile.toml.encode(output_metadata));
+    fclose(fid);
+catch e
+    fprintf('Error writing to %s\n', fullfile(output_lumo_directory, file_name));
+    rethrow(e);
+end
+    
+
