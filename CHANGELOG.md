@@ -2,7 +2,7 @@
 
 ## v1.1.0 (master)
 
-In development
+ - read LUMO files v0.5
 
 ## v1.0.0
 

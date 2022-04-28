@@ -253,7 +253,7 @@ end
 function [lf_desc] = load_lumo_desc(lf_dir)
 
 % 0. Some constants
-lf_known_ver = [0 0 1; 0 1 0; 0 1 1; 0 2 0; 0 3 0; 0 4 0];
+lf_known_ver = [0 0 1; 0 1 0; 0 1 1; 0 2 0; 0 3 0; 0 4 0; 0 5 0];
 
 % 1. Ensure that the specified file exists
 %
