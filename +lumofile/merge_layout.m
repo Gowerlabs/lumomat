@@ -149,7 +149,7 @@ catch e
 end
 
 %% set layout.json
-output_metadata.layout_file = 'layout.json'
+output_metadata.layout_file = 'layout.json';
 
 %% (over)write metadata.toml
 
