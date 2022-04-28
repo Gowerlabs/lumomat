@@ -90,7 +90,7 @@ end
 lf_meta_fns = reqfield(metadata, 'file_names');
 
 if ~isfield(lf_meta_fns, 'hardware_file')
-    output_metadata.file_names.hardware_file = lf_meta_fns.lf_meta_fns;
+    output_metadata.file_names.hardware_file = lf_meta_fns.layout_file;
 end
 
 %% Construct output directory if applicable
