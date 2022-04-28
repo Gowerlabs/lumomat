@@ -61,6 +61,7 @@ output_metadata = metadata;
 
 %% Parse version information
 
+% A list of layoutfiles with missing versions.
 lf_missing_layout_ver = [0 0 1; 0 1 0; 0 1 1; 0 4 0];
 
 lf_ver = reqfield(metadata, 'lumo_file_version', input_lumo_directory);
@@ -80,7 +81,7 @@ if all(lf_ver_num == [0 1 1])
   end
 end
 
-if ~ismember(lf_known_ver, lf_ver_num, 'rows')
+if ~ismember(lf_missing_layout_ver, lf_ver_num, 'rows')
     warning('This lumo file version should already contain a layout file.');
 end
 
