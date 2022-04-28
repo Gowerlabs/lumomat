@@ -132,3 +132,6 @@ catch e
     rethrow(e);
 end
 
+%% set layout.json
+output_metadata.layout_file = 'layout.json'
+
