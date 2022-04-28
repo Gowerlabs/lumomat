@@ -1,7 +1,5 @@
 # lumomat
 
-*This package is in beta and has not yet been released, master is functional but changes to the data structures may be made before final release*
-
 MATLAB tools for LUMO data.
 
 `lumomat` allows one to read LUMO output files, explore their contents, and export to common file formats. 
@@ -385,12 +383,22 @@ To encode event markers in the SNIRF stimulus format, all events which share the
 
 ### LUMO additional metadata
 
-LUMO includes additional fields in the SNIRF metadata, alongside a number of auxiliary fields, as permitted by the SNIRF specification. The format of the metadata (and auxiliary data) is versioned as described. The current version is 1.0.0. All fields are located under `nirs(i)/metaDataTags/lumo/`:
+This package writes additional fields in the SNIRF metadata, as permitted by the SNIRF specification. The following fields are located under `nirs(i)/metaDataTags/`:
 
- - `formatVersion`: the version of the `LUMO` metadata and auxiliary fields, specified as a string representation of a semantic version number.
+ - `lumomatVersion`: the version of the `lumomat` package which wrote the SNIRF file, a string representation of a semantic version number.
  - `saturationFlags`: a vector of integers in which a non-zero value in the `i`th element indicates that saturation of the `i`th channel occurred at some time during the recording. Transient saturation can occur during, e.g., movement, so this global flag can exclude many channels which are viable for the vast majority of the recording. Some versions of the LUMO software will export a time-series of saturation flags (see auxiliary measurements) to enable more granular channel filtering.
- - `hubSerialNumber`: the serial number of the Hub to which the group was connected.
  - `groupName`: the name of group upon which the data was acquired (e.g. the cap serial number).
+
+Extended metadata can also be written to the file, however the format of this data is yet stable as it depends upon the resolution of a [query](https://github.com/fNIRS/snirf/issues/110) regarding the SNIRF specification. 
+
+To enable writing the extended metadata:
+
+```
+snirf = data.write_SNIRF(filename, 'meta', 'extended');
+```
+
+This will result in the following fields being written under the  `nirs(i)/metaDataTags/lumo/` group:
+
  - `canonicalMap`: is a flattened and abbreviated version of the canonical enumeration used internally, the values of this matrix can be used to index into the `nodes` and `docks` indexed groups. The values can also be used on their own in order to restore locality information (e.g. the nodes to which channels belong) from the global enumeration stored in the `probe` group. The rows of the matrix are each 1-based indices:
    1. source node index, used to index the `nodes{i}` structure
    2. source dock index, used to index the `docks{i}` structure
@@ -408,12 +416,15 @@ LUMO includes additional fields in the SNIRF metadata, alongside a number of aux
 
 ### LUMO auxiliary measurements
 
-The following fields are TBC pending resolution of [queries]([]https://github.com/fNIRS/snirf/issues/107) regarding the SNIRF specification.
+Auxiliary measurements such as motion data and temperature are also written to the output file, when available. The format of this data is not yet stable as it depends upon the resolution of a [query](https://github.com/fNIRS/snirf/issues/107) regarding the SNIRF specification.
 
-  - (*) Motion data:
-  - (*) Saturation flags:
+Each auxiliary measurement is located in an individual `/nirs(i)/aux(j)` field. The `/nirs{i}/aux{j}/name` field will be set as decried to identify the data.
 
-(*) These fields are optional and only recorded by more recent software versions of LUMO. To update your software in order to capture this data, contact Gowerlabs.
+  - (*) Temperature (`temperature`): matrix of dimensions `<time x nodes>` containing the internal tile temperature for each node over the course of the experiment. 
+  - (*) Saturation (`saturationFlags`): matrix of dimensions `<time x channels>` where a non-zero value indicates that the channel was saturated at the selected time point. This is a more detailed version of the channel saturation summary written into the LUMO metadata.
+  - (*) Motion data (`accel_x/y/z`, `gyro_x/y/z`): a set of six matrices each of dimensions `<time x nodes>`, with names according to the SNIRF specification. Acceleration is stored in units of `g`, and gyroscope data in `deg/s`. Note that motion data is not unfiltered, and post-processing will be required.
+  
+*All auxiliary fields are optional and only recorded by more recent software versions of LUMO. To update your software in order to capture this data, contact Gowerlabs.*
 
 
 ### Notes
@@ -423,7 +434,7 @@ The following fields are TBC pending resolution of [queries]([]https://github.co
 
 ## NIRS output
 
-The NIRS file format is used by analysis programs such as HOMER2. A number of processing pipelines and legacy analysis tools may most easily be used with a NIRS file, but we generally recommend that users choose the SNIRF format for data archival and analysis, where possible.
+The NIRS file format is based upon MATLAB output files, and was originally used in the HOMER2 software. Owing to its legacy, a number of existing processing pipelines might most easily be used with data in this format. Whilst a specification is provided for valid NIRS files, variations on the format are commonly encountered. We recommend that when possible, users prefer the SNIRF format for their data archival and analysis.
 
 To construct a NIRS structure and write a NIRS file:
 
@@ -442,19 +453,12 @@ The NIRS file contains an `SD` structure which describes the physical configurat
  data.write_NIRS(filename, 'sd_style', 'flat');
 ```
 
-*Note: The channel list in a NIRS file is re-indexed such that it is sorted by (wavelength, source index, detector index), as this is assumed in some analysis software. The sorting permutation is retained in the additional variable `lumo.chn_sort_perm` in case the original ordering is required*
+*Note: The channel list in a NIRS file is re-indexed such that it is sorted by (wavelength, source index, detector index), as this is assumed in some analysis software.*
 
 ### Additional LUMO specific fields:
 
- - `lumo.chn_sat`: a logical vector (or matrix) indicating if a channel is saturated. If this field is a vector, a non-zero (or logical true) entry in the `i`th index indicates that the `i`th channel was saturated at some point in the recording. Since transient effects such as movement can cause temporary saturation, the use of a single flag for each channel can cause the loss of a number of channels which are useful for a large proportion of the recording. More recent versions of the LUMOview software will output data which permits allows this field to be output as a matrix of values such that saturation can be identified per-channel, per-frame, allowing for more granular exclusion of saturated data. Contact Gowerlabs to update your software if this feature is desired.
- - `lumo.src_pwr`: a vector of source powers expressed in percent, for each channel.
- - `lumo.chn_sort_perm`: a permutation array which allows restoration of canonical channel ordering.
-
-### Optional and compatibility fields:
-
- - `SD.MeasListAct`: an vector of length (*no. channels*) to permit manual channel pruning, initialised by the exporter to include all channels
- - `SD.MeasListActSat`: an array indicating if a channel should be included based on saturation, used by the DOT-HUB toolbox.
-
+ - `SD.MeasListActSat`: a logical vector (or matrix) indicating if a channel is saturated. If this field is a vector, a non-zero (or logical true) entry in the `i`th index indicates that the `i`th channel was saturated at some point in the recording. Since transient effects such as movement can cause temporary saturation, the use of a single flag for each channel can cause the loss of a number of channels which are useful for a large proportion of the recording. More recent versions of the LUMOview software will output data which permits allows this field to be output as a matrix of values such that saturation can be identified per-channel, per-frame, allowing for more granular exclusion of saturated data. Contact Gowerlabs to update your software if this feature is desired.
+ - `SD.SrcPowers`: a matrix of source powers expressed in percent, indexed by the global source index and wavelength. 
 
 # Low-level functional API
 
@@ -735,13 +739,14 @@ ans =
 
   struct with fields:
 
-          uid: 20155582
+           id: '0x01338CBE'
+         name: 'C005A'
     landmarks: [5×1 struct]
         docks: [1×12 struct]
       dockmap: [12×1 double]
 ```
 
-The `uid` is a unique identifier which matches the layout to the recorded group, though this is not enforced by software.
+The `id` is a unique identifier which matches the layout to the recorded group, though this is not enforced by software.
 
 The docks field is an array of dock descriptors, we choose an arbitrary index:
 

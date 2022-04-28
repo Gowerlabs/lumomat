@@ -140,6 +140,13 @@ chfilter = p.Results.chfilter;       % Channel optode-pair filtering matrix
 gidx = p.Results.group-1;            % Selected group index for hyperscanning data
 layout_override = p.Results.layout;
 
+if exist(lufrfn, 'file') ~= 2
+  error('The specified LUFR file (%s) cannot be found', lufrfn)
+else
+  fprintf('Loading LUFR file %s\n', lufrfn);
+end
+
+
 if(~isempty(chfilter))
     
     if(size(chfilter,2) ~= 4)
@@ -163,10 +170,6 @@ tag_event = 4;
 n_wl_min = 2;
 
 % Open the file
-if(~isfile(lufrfn))
-    error('The lufr file %s cannot be found', lufrfn);
-end
-
 fid = fopen(lufrfn, 'rb');
 
 % Get file size
@@ -184,12 +187,14 @@ end
 filever = fread(fid, 1, 'uint8=>double');
 if(filever ~= 1 && filever ~=2)
     error('The lumo frame file is of an unknown version %i', filever);
+else
+  fprintf('LUFR file version %d\n', filever);
 end
 
 % On version two, we will need to set the particular group index from
 % which we wish to extract data
 if(filever > 1)
-    fprintf('Group index %d selected \n', gidx);
+    fprintf('LUFR file group index %d selected \n', gidx);
 end
 
 % Skip over zeros
@@ -222,7 +227,6 @@ n_infos = 0;
 % Special case the enumeration so we can access it easily
 rc_enum_idx = 0;
 
-wb = waitbar(ftell(fid)/filesize, 'Scanning records');
 i = 0;
 
 while(~feof(fid))
@@ -253,7 +257,7 @@ while(~feof(fid))
     % enumerations so it doesn't matter if this is overwritten
     
     if(recordtag == tag_enumeration)
-        fprintf('Found enumeration at tag %d\n', rc_enum_idx);
+        fprintf('LUFR file enumeration found at tag %d\n', rc_enum_idx);
         rc_enum_idx = length(rctag);
     end
     
@@ -287,7 +291,7 @@ while(~feof(fid))
         else
             % Subsequently, check no changes have happned
             if ~all(sizeparam(2:end) == sizeparam_ref(2:end))
-                error('Frame data varies, I cannot handle it');
+                error('LUFR file invalid: frame data dimensions vary');
             end
             
         end
@@ -313,25 +317,21 @@ while(~feof(fid))
     
     % Increment counter
     i = i+1;
-    if ~mod(i, 100)
-        waitbar(ftell(fid)/filesize, wb, sprintf('Scanning frames %d',length(rclength)));
-    end
-    
+ 
 end
-close(wb);
 
 if(n_enums < 1)
-    error('File does not contain an enumeration block');
+    error('LUFR file does not contain an enumeration block');
 end
 
 if(n_enums > 1)
-    error('File contains more than one enumeration block');
+    error('LUFR file contains more than one enumeration block');
 end
 
 if length(rclength) == record_count
-    fprintf('File contains %d records, %d frames, %d events \n', length(rclength), n_frames, n_events);
+    fprintf('LUFR file contains %d records, %d frames, %d events \n', length(rclength), n_frames, n_events);
 else
-    warning('Found %d records, %d frames, %d events in the input data file\n', length(rclength), n_frames, n_events);
+    warning('LUFR file found %d records, %d frames, %d events in the input data file\n', length(rclength), n_frames, n_events);
 end
 
 % Work with the metadata
@@ -361,7 +361,7 @@ fprintf('done\n');
 % Fix enmeration acquistion data in some versions
 if(isfield(enum, 'group'))
     
-    fprintf('Fixing enumeration structure error\n');
+    fprintf('LUFR file contains imperfect structure, fixing...\n');
     
     % Merge fields into correct structure. Note that versions with this
     % erroneous field naming did not have hyperscanning support, so the
@@ -389,9 +389,6 @@ if(apply_filter)
     lin_src_opt = [enum.groups(gidx + 1).channels.src_optode_name].' - 64;    % ASCII 'A' -> 1
     lin_det_opt = [enum.groups(gidx + 1).channels.det_optode_name].' - 47;   % ASCII '0' -> 1
      
-    % Inform the user
-    wb = waitbar(0, 'Applying distance filter');
-    
     % Over every entry in the keep list
     k = 1;
     for i = 1:size(chfilter,1)
@@ -406,21 +403,17 @@ if(apply_filter)
         
         chperm(k:(k+n_ch_match-1)) = ch_match;
         k = k+n_ch_match;
-        
-        if ~mod(i,100)
-            waitbar(i/size(chfilter,1), wb, sprintf('Applying distance filter %d / %d', i, size(chfilter,1)));
-        end
-        
+       
     end
     
-    close(wb);
+
     
     if(any(chperm == 0))
         error('Some entries in the channel keep filter could not be matched');
     end
     
     n_schans_keep = length(chperm);
-    fprintf('Channel filtering complete, found %d channels\n', n_schans_keep);
+    fprintf('LUFR file channel filtering complete, found %d channels\n', n_schans_keep);
     
 else
     
@@ -441,7 +434,7 @@ n_row    = sizeparam_ref(9);
 tchdat = sizeparam_ref(2)*1e-6; %in seconds
 fps = 1/(sizeparam_ref(2)*1e-6);
 
-fprintf('Frame rate is %.2f fps\n', fps);
+fprintf('LUFR file channel frame rate is %.2f fps\n', fps);
 
 if(apply_filter)
     chdat = zeros(n_schans_keep, n_frames, 'single');   % Channel data
@@ -457,8 +450,7 @@ accdat = zeros(n_nodes, 3, n_mpu, n_frames);        % MPU data (concatenated lat
 gyrdat = zeros(n_nodes, 3, n_mpu, n_frames);        % MPU data (concatenated later)
 
 
-% Loop over the frames and get them data
-wb = waitbar(0, 'Processing frames');
+% % Loop over the frames and get them data
 
 i_fr = 1;   % Frame count
 i_if = 1;   % Information block count
@@ -538,22 +530,17 @@ for i = 1:length(rclength)
         i_if = i_if + 1;
     end
     
-    if ~mod(i,100)
-        waitbar(i/length(rclength), wb, sprintf('Processing record %d / %d', i, length(rclength)));
-    end
-    
 end
 
-close(wb);
 
 % Close the file
 fclose(fid);
 
 
 % Build the saturation flag matrix
-det_sat_limit = 95;
+det_sat_limit = 97.5;
 
-fprintf('Building saturation channel mapping\n');
+fprintf('LUFR file building saturation channel mapping... ');
 
 % Build a [src_node_id x src x det_node_id x row x det] -> channel mapping
 n_srcdim_max = 6;
@@ -571,9 +558,6 @@ for i = 1:length(enum.groups(gidx + 1).channels)
                     
     satmap(i_src_node_idx, i_src_opt_idx, i_det_node_idx, i_row_idx, i_det_opt_idx) = i;
 end
-
-% Loop over the frames and get them data
-wb = waitbar(0, 'Building saturation flag matrix');
 
 if(apply_filter)    
      satflag = false(n_schans_keep, n_frames);
@@ -594,14 +578,11 @@ for j = 1:n_frames
         satflag(satchans,j) = true;
     end
     
-    if ~mod(j,100)
-        waitbar(j/n_frames, wb, sprintf('Building saturation flag matrix %d / %d', j, n_frames));
-    end
-
 end
 
 
-close(wb);
+fprintf('done\n');
+
 
 % Reorder MPU data
 dim = size(gyrdat);
@@ -618,7 +599,7 @@ tmpudat = 10e-3; %Always at 100Hz = 1/10ms
 %
 
 % Rework the group ID to a hex string and descriptive name
-[uid_hex, uid_name] = lumofile.norm_gid(enum.groups(gidx + 1).id);
+[uid_hex, uid_name] = lumomat.norm_gid(enum.groups(gidx + 1).id);
 enum.groups(gidx + 1).id = uid_hex;
 enum.groups(gidx + 1).name = uid_name;
 
@@ -731,7 +712,7 @@ end
 if isempty(layout_override)
   
   % The user has nor provided a layout, we must use the embedded data if it exists
-   enum.groups(gidx + 1).layout = [];
+  % enum.groups(gidx + 1).layout = [];
    warning([...
       'The sepcified LUFR file does not contain an embedded layout file, and no layout '...
       'has been specified when calling this function. The returned enumeration will '...
@@ -755,19 +736,26 @@ else
       
   elseif isstruct(layout_override)
     enum.groups(gidx + 1).layout = layout_override;
-    fprintf('LUFR file using user-specified layout structure (not validated)\n');
+    fprintf('LUFR file using user-specified layout structure\n');
   else
     error('The specified layout is neither a layout filename nor structure, consult help');
   end
-  
+    
 end
 
-%%% TODO: Add layout validation
+if isfield(enum.groups(gidx + 1), 'layout')
+  lumomat.validate_layout(enum);
+end
 
-% Build event output structure
+% Build event output structure 
 ne = length(evtim);
-for i = 1:ne
-  events(i) = struct('mark', convertStringsToChars(evstr{i}), 'timestamp', evtim(i));
+if ne > 0
+  for i = 1:ne
+    % Note that events are stored in seconds
+    events(i) = struct('mark', convertStringsToChars(evstr{i}), 'timestamp', evtim(i)*1e-3);
+  end
+else
+  events = [];
 end
 
 % Build data output structure
@@ -777,14 +765,11 @@ data = struct('chn_dat', chdat, ...
               'chn_sat', satflag,...
               'nframes', size(chdat, 2), ...
               'nchns', size(chdat, 1), ...
-              'node_temp', tmpdat);
-
-% MPU data to be added pending resolution of auxiliar data size fields in SNIRF
-% specifications.
-%
-% mpu_dt        
-% mpu_fps
-% mpu_acc_dat
-% mpu_gyr_dat
-
+              'node_temp', tmpdat, ...
+              'node_mpu_dt', 10e-3, ...
+              'node_mpu_fps', 100, ...
+              'node_acc', accdat, ...
+              'node_gyr', gyrdat);
+              
+            
 end

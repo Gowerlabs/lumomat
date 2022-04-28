@@ -7,7 +7,7 @@
 %   (C) Gowerlabs Ltd., 2022
 %
 
-%% TODO
+%%% TODO
 %
 % Additonal tests required
 %
@@ -26,45 +26,52 @@
 % - Checks on data location mapping
 %
 
-[path, ~, ~] = fileparts(mfilename('fullpath'));
+[lmpath, ~, ~] = fileparts(mfilename('fullpath'));
 
-lumo_sample_files = {...
+% Cross-check datasets
+lumo_xc_sample_files = {...
   'sample_v011_1.LUMO',...
   'sample_v020_1.LUMO',...
   'sample_v030_1.LUMO',...
   'sample_v040_1.LUMO'};
 
-nirs_sample_files = {...
+nirs_xc_sample_files = {...
   'sample_v011_1_flat.nirs.mat',...
   'sample_v020_1_flat.nirs.mat',...
   'sample_v030_1_flat.nirs.mat',...
   'sample_v040_1_flat.nirs.mat'};
-  
 
-lumo_sample_fn = fullfile(path, 'samples', lumo_sample_files);
-nirs_sample_fn = fullfile(path, 'samples', nirs_sample_files);
+% Independent version samples
+lumo_idpver_samples = {...
+  'sample_v050_1.LUMO'};
 
-layout_12_1_fn = fullfile(path, 'samples', 'layout_12_1.json');
+lumo_xc_sample_fn = fullfile(lmpath, 'samples', lumo_xc_sample_files);
+nirs_xc_sample_fn = fullfile(lmpath, 'samples', nirs_xc_sample_files);
+
+lumo_idpver_sample_fn = fullfile(lmpath, 'samples', lumo_idpver_samples);
+
+
+layout_12_1_fn = fullfile(lmpath, 'samples', 'layout_12_3735928559.json');
 
 
 %% Test 1: parse all supported lumo file versions
 
-for i = 1:length(lumo_sample_files)
-  [enum, data,  events] = lumofile.read_lumo(lumo_sample_fn{i});
+for i = 1:length(lumo_xc_sample_fn)
+  [enum, data,  events] = lumofile.read_lumo(lumo_xc_sample_fn{i});
 end
 
 %% Test 2: Check against NIRS
 
-for i = 1:length(lumo_sample_files)
+for i = 1:length(lumo_xc_sample_files)
 
-  nirs_sample = load(nirs_sample_fn{i});
+  nirs_sample = load(nirs_xc_sample_fn{i});
 
   if i == 1
     
     % Special case for the first file, we insert a layout file
-    [enum, data, events] = lumofile.read_lumo(lumo_sample_fn{1}, 'layout', layout_12_1_fn);
+    [enum, data, events] = lumofile.read_lumo(lumo_xc_sample_fn{1}, 'layout', layout_12_1_fn);
   else
-    [enum, data, events] = lumofile.read_lumo(lumo_sample_fn{i});
+    [enum, data, events] = lumofile.read_lumo(lumo_xc_sample_fn{i});
   end
   
   % Build the 'flat' layout and test
@@ -89,9 +96,11 @@ for i = 1:length(lumo_sample_files)
   assert(norm(nirs_sample.t - nirs_test.t) < 1e-9)
   
   if norm(nirs_sample.d - nirs_test.d) > 1e-6
-    warning('Data norm exceeds 1x10^6');
+    warning('Data norm exceeds 1x10^-6');
   end
   
+  assert(norm(nirs_sample.d - nirs_test.d) < 1)
+    
   % SD
   assert(nirs_sample.SD.nSrcs == nirs_test.SD.nSrcs);
   assert(nirs_sample.SD.nDets == nirs_test.SD.nDets);
@@ -124,7 +133,7 @@ for i = 1:length(lumo_sample_files)
   assert(norm(nirs_sample.t - nirs_test.t) < 1e-9)
   
   if norm(nirs_sample.d - nirs_test.d) > 1e-6
-    warning('Data norm exceeds 1x10^6');
+    warning('Data norm exceeds 1x10^-6');
   end
   
   % SD - note that we can compare the sample SD3D to the test SD here because the standard
@@ -143,18 +152,18 @@ end
 
 %% Test 3: Test high level interface
 
-for i = 1:length(lumo_sample_files)
+for i = 1:length(lumo_xc_sample_files)
   
   % Load raw data
   if i == 1
     % Special case for the first file, we insert a layout file
-    ld = LumoData(lumo_sample_fn{1}, 'layout', layout_12_1_fn);
+    ld = LumoData(lumo_xc_sample_fn{1}, 'layout', layout_12_1_fn);
   else
-    ld = LumoData(lumo_sample_fn{i});
+    ld = LumoData(lumo_xc_sample_fn{i});
   end
   
   % Load the NIRS sample
-  nirs_sample = load(nirs_sample_fn{i});
+  nirs_sample = load(nirs_xc_sample_fn{i});
   
   % Convert to NIRS to get sorting permutation
   nirs_test = lumofile.write_NIRS([], ld.enum, ld.data, ld.evts, 'sd_style', 'flat');
@@ -194,9 +203,14 @@ for i = 1:length(lumo_sample_files)
   
 end
 
-%% Test 4: Bad layout merging
+%% Test 4: New versions load
+for i = 1:length(lumo_idpver_sample_fn)
+  [enum, data,  events] = lumofile.read_lumo(lumo_idpver_sample_fn{i});
+end
 
-%% Test 5: Non spectroscopic
+%% Test 5: Bad layout merging
+
+%% Test 6: Non spectroscopic
 
   
 

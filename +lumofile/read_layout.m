@@ -16,6 +16,8 @@ function [layout] = read_layout(fn)
 %
 %     layout:   An structure containing the following fields
 %
+%               id:        a unique identifier
+%               name:      friendly name for the group
 %               docks:     an array of dock description structures
 %               dockmap:   a mapping from dock id to the docks array indices
 %               landmarks: (optional) an array of structures of named points on the laytout
@@ -41,7 +43,7 @@ function [layout] = read_layout(fn)
 %   In addition to the ID, each dock contains an array of optodes descriptors. Each optode
 %   is defined by a structure:
 %
-%     optode.name:      A name for the optode (not used for indexing)
+%     optode.name:       A name for the optode (not used for indexing)
 %     optode.coords_2d:  Co-ordinates of the optode in a flattened 2D representation
 %     optode.coords_3d:  Co-orindates of the optode in 3D space
 %
@@ -60,15 +62,14 @@ function [layout] = read_layout(fn)
 %   (C) Gowerlabs Ltd., 2022
 %
 
-%%% TODO
-%
-% - Rework landmark structure to match the organisation of the optodes
-%
+if exist(fn, 'file') ~= 2
+  error('Layour file (%s) cannot be found\n', fn)
+end
 
 try
   layout_raw = jsondecode(fileread(fn));
 catch e
-  fprintf('Error parsing layout file %s', fn);
+  fprintf('Error parsing layout file %s\n', fn);
   rethrow(e);
 end
 
@@ -92,7 +93,7 @@ try
       lf_lo_landmarks(li).coords_3d.y = lf_lo_landmarks(li).y;
       lf_lo_landmarks(li).coords_3d.z = lf_lo_landmarks(li).z;
     end
-    rmfield(lf_lo_landmarks, {'x', 'y', 'z'});
+    lf_lo_landmarks = rmfield(lf_lo_landmarks, {'x', 'y', 'z'});
     
   end    
 
@@ -133,7 +134,10 @@ maxdid = max(dockids);
 dockmap = zeros(maxdid, 1);
 dockmap(dockids) = 1:length(dockids);
 
-layout = struct('uid', lf_lo_group_uid, ...
+[uid_hex, uid_name] = lumomat.norm_gid(lf_lo_group_uid);
+
+layout = struct('id', uid_hex, ...
+  'name', uid_name, ...
   'dims_2d', lf_lo_dims_2d, ...
   'dims_3d', lf_lo_dims_3d, ...
   'landmarks', lf_lo_landmarks, ...
