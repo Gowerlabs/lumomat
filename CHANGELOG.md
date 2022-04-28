@@ -1,5 +1,9 @@
 # lumomat
 
+## v1.1.0 (master)
+
+In development
+
 ## v1.0.0
 
 Initial release
@@ -8,5 +12,7 @@ Initial release
  - write NIRS files (including DOT-HUB style)
  - write SNIRF files, compliant with exceptions confirmed by spec. authors
  - basic data exploration
+
+
 
 
