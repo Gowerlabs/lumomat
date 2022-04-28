@@ -46,14 +46,14 @@ end
 metadata_fn = fullfile(input_lumo_directory, 'metadata.toml');
 
 if exist(metadata_fn, 'file') ~= 2
-  error('LUMO file (%s): invalid metadata not found\n', lf_dir)
+  error('LUMO file (%s): invalid metadata not found\n', input_lumo_directory);
 end
 
 try
   raw = fileread(metadata_fn);
   metadata = lumofile.toml.decode(raw);
 catch e
-  fprintf(2, 'LUMO file (%s): error parsing metadata file %s\n', lf_dir, metadata_fn);
+  fprintf(2, 'LUMO file (%s): error parsing metadata file %s\n', input_lumo_directory, metadata_fn);
   rethrow(e);
 end
 
@@ -63,12 +63,12 @@ output_metadata = metadata;
 
 lf_missing_layout_ver = [0 0 1; 0 1 0; 0 1 1; 0 4 0];
 
-lf_ver = reqfield(metadata, 'lumo_file_version', lf_dir);
+lf_ver = reqfield(metadata, 'lumo_file_version', input_lumo_directory);
 try
   lf_ver_num = str2double(strsplit(lf_ver, '.'));
 catch e
-  fprintf(2, 'LUMO file (%s): error parsing fiile version number\n', lf_dir);
-  rethrow(e)
+  fprintf(2, 'LUMO file (%s): error parsing fiile version number\n', input_lumo_directory);
+  rethrow(e);
 end
 
 % We need to get the (required) file name field here, in order to deal with a version number
