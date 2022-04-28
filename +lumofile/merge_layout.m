@@ -1,0 +1,1 @@
+function merge_layout(input_lumo_directory, layout_file, output_lumo_directory)
