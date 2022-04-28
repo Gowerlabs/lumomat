@@ -106,18 +106,33 @@ if input_lumo_directory ~= output_lumo_directory
     end
     
     %% copy files
-    file_names = dir(input_lumo_directory);
+    file_names = ls(input_lumo_directory);
     
-    for i = 1 : length(file_names)
-        file_name = file_names{i};
+    file_names_size = size(file_names);
+    
+    for i = 1 : file_names_size(1)
+        file_name = file_names(i,:);
         
-        try
-            if(file_name ~= "metadata.toml")
-                copyfile(fullfile(input_lumo_directory, file_name),fullfile(output_lumo_directory, file_name));
+        pad_size = length(file_name);
+        
+        if file_name == pad("metadata.toml", pad_size)
+            % Ignoring "metadata.toml" since we're printing the modified
+            % version later.
+        elseif file_name == pad(".", pad_size) || file_name == pad("..", pad_size)
+            % Ignoring these 2 file_names as they appear by default on
+            % windows, not sure about other Operating Systems however.
+        else
+            
+            % All other files will be copied.
+            try
+                input_file = fullfile(input_lumo_directory, file_name);
+                output_file = fullfile(output_lumo_directory, file_name);
+                
+                copyfile(input_file, output_file);
+            catch e
+                fprintf('Error copying file %s\n', file_name);
+                rethrow(e);
             end
-        catch e
-            fprintf('Error copying file %s\n', file_name);
-            rethrow(e);
         end
         
     end
