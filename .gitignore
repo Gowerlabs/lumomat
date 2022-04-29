@@ -4,3 +4,4 @@
 test/samples
 test/pyutil/pytenv
 test/*.zip
+exp/

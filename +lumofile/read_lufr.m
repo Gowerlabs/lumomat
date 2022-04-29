@@ -719,7 +719,7 @@ if isempty(layout_override)
       'lack layout information, and it will not be possible to convert this file to '...
       'formats which require a layout. Specify an appropriate layout file to supress '... 
       'this warning.']);
-    
+      
 else
   
   % The user has supplied a layout file
@@ -745,6 +745,8 @@ end
 
 if isfield(enum.groups(gidx + 1), 'layout')
   lumomat.validate_layout(enum);
+else
+  enum.groups(gidx + 1).layout = [];
 end
 
 % Build event output structure 

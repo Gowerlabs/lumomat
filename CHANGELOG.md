@@ -4,6 +4,8 @@
 
  - read LUMO files v0.5
  - add `merge_layout` function to integrate layouts into LUMO files
+ - saturation data is now chunked and compressed
+ - SNIRF extended metadata now stored in root of the file, allowing validation
 
 ## v1.0.0
 

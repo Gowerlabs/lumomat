@@ -24,15 +24,15 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 %                                wavelengths.
 %                             2. Rename landmarks: Al -> LPA, Ar -> RPA, Nasion -> NASION
 %
-%   'meta':     Include an additional set of metadata under `/nirs(i)/metaDataTags/lumo`
-%               containing a an abbreviated and flattened representation of the canonical
-%               layout.
+%   'meta':     Additional metadata can be written to the SNIRF file containing an 
+%               abbreviated and flattened representation of the canonical layout for each
+%               group defined in `/nirs(i)`.
 %
-%               Enabling this option prevents official validation. This option may be
-%               updated pending: https://github.com/fNIRS/snirf/issues/110
+%               Enabling this option will result in a warning from the official SNIRF 
+%               validation utility.
 %
 %               'standard':   (default) no extended metadata   
-%               'extended':   write additional metadata
+%               'extended':   write additional metadata for `/nirs(i)` in `/lumo(i)`
 %
 %   Returns:
 %
@@ -166,8 +166,12 @@ for gidx = 1:ng
   if strcmp(meta_style, 'extended')
     
     % LUMO specific metadata
-    lumo_md_group = create_group(nirs_meta_group, 'lumo');
-
+    if ng > 1
+      lumo_md_group = create_group(fid, ['lumo' num2str(gidx)]);
+    else
+      lumo_md_group = create_group(fid, ['lumo']);
+    end
+  
     %%% Output the canonical map
     dockmap = enum.groups(gidx).layout.dockmap;
     nc = length(enum.groups(gidx).channels);
@@ -298,7 +302,8 @@ for gidx = 1:ng
       nirs_aux_sat = create_group(nirs_group, ['aux' num2str(auxi)]); 
       snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_sat, 'name', 'saturationFlags');
       snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_sat, 'time', [0 data(gidx).chn_dt]);
-      snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_int32(nirs_aux_sat, 'dataTimeSeries', data(gidx).chn_sat.');
+      snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_int32_compressed(nirs_aux_sat, 'dataTimeSeries', data(gidx).chn_sat.');
+     
       H5G.close(nirs_aux_sat);
       auxi = auxi+1;
   end
@@ -619,47 +624,58 @@ end
 
 function val = write_int32(base, path, val)
 tp = H5T.copy('H5T_STD_I32LE');
-write_core(base, path, int32(val), tp, false);
+write_core(base, path, int32(val), tp, false, false);
+end
+
+function val = write_int32_compressed(base, path, val)
+tp = H5T.copy('H5T_STD_I32LE');
+write_core(base, path, int32(val), tp, false, true);
 end
 
 function val = write_int8(base, path, val)
 tp = H5T.copy('H5T_STD_I8LE');
-write_core(base, path, int8(val), tp, false);
+write_core(base, path, int8(val), tp, false, false);
 end
 
 function val = write_double(base, path, val)
 tp = H5T.copy('H5T_IEEE_F64LE');
-write_core(base, path, double(val), tp, false);
+write_core(base, path, double(val), tp, false, false);
 end
 
 function val = write_double_fixed(base, path, val)
 tp = H5T.copy('H5T_IEEE_F64LE');
-write_core(base, path, double(val), tp, true);
+write_core(base, path, double(val), tp, true, false);
 end
 
 function val = write_single(base, path, val)
 tp = H5T.copy('H5T_IEEE_F32LE');
-write_core(base, path, single(val), tp, false);
+write_core(base, path, single(val), tp, false, false);
 end
 
-function write_core(base, path, val, tp, fix_shape)
+function write_core(base, path, val, tp, fix_shape, compress)
 
 % Dataspace
 if fix_shape
   val = val.';
   ds = H5S.create_simple(2, fliplr(size(val)), fliplr(size(val)));
+  h5_chunk_size = fliplr(size(val));
+  h5_chunk_size(1:(end-1)) = 1;
 else
   if isscalar(val)
     % Scalar value
-    ds = H5S.create('H5S_SCALAR');     
-  elseif rankn(val) == 1
+    ds = H5S.create('H5S_SCALAR'); 
+    h5_chunk_size = 1;
+    elseif rankn(val) == 1
     % Vector
     len = numel(val);
     ds = H5S.create_simple(1, len, len);
+    h5_chunk_size = len;
   elseif rankn(val) == 2
     % Matrix (must transpose)
     val = val.';
     ds = H5S.create_simple(2, fliplr(size(val)), fliplr(size(val)));
+    h5_chunk_size = fliplr(size(val));
+    h5_chunk_size(1:(end-1)) = 1;
   else
     H5T.close(tp);
     error('Data dimensionality not supported');
@@ -667,6 +683,22 @@ else
 end
 
 pl = H5P.create('H5P_DATASET_CREATE');      % Porperty list
+
+if compress
+  
+  % If compression is required, we will chunk by the fastest varying dimension in the
+  % dataset (the last dimension in HDF5).
+  %
+  h5_dflt_lvl = 7;
+  H5P.set_chunk(pl, h5_chunk_size);           % Set chunk size to be one frame
+  H5P.set_deflate(pl, h5_dflt_lvl);           % Set deflate compression
+  
+  fprintf('Applying compression with chunk size: [');
+  fprintf('%g ', h5_chunk_size);
+  fprintf(']\n');
+
+end
+
 dset = H5D.create(base, path, tp, ds, pl);  % Dataset
 
 % Write
