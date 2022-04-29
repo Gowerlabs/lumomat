@@ -1,6 +1,6 @@
 # lumomat
 
-## v1.1.0 (master)
+## v1.1.0
 
  - read LUMO files v0.5
  - add `merge_layout` function to integrate layouts into LUMO files
