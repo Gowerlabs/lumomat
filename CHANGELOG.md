@@ -1,5 +1,8 @@
 # lumomat
 
+## v1.2.0 (master)
+
+
 ## v1.1.0
 
  - read LUMO files v0.5
