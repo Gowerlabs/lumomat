@@ -182,8 +182,10 @@ The data can be exported (with LUMO extensions, see below):
 
 The physical layout of a LUMO system is determined from a layout file which contains the position of each optode in each dock of a given group, and optional physiological landmarks. During manufacture, these positions are measured on a suitable phantom and a *default* layout file is produced. This layout file is copied into the output file when recording.
 
-*Note: some versions of the LUMOview software do not embed a layout file in the `.lumo` output file as described above. If no layout file is embedded, a warning will be printed. In this case, `lumomat` will fall back to load any file named `layout.json` within the `.lumo` directory, so it is possible to copy, rename, and move the Gowerlabs' supplied layout file to restore functionality. Alternatively, the layout file may be specified as described for the provision of subject-specific layouts.*
-
+Note: some versions of the LUMOview software do not embed a layout file in the `.lumo` output file as described above. If no layout file is embedded, a warning will be printed. In this case:
+-  the `lumofile.merge_layout` function can be used to embed a layout file in a copy of a `.lumo` recoding. When this function is called without specifying a layout file, it will search the standard installation directories for the layout file included with the LUMOview software
+ -  the layout file may be specified as described for the provision of subject-specific layouts
+  
 It is often the case that for the purposes of data analysis, practitioners will wish to provide subject-specific layout information measured during an experiment. This information can be used instead of the default layout:
 
 ```

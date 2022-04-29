@@ -54,11 +54,13 @@ end
 
 
 %% Test 3: merge layout files
+lumofile.merge_layout(fullfile(lmpath, 'samples', 'sample_v040_no_layout.LUMO'));
 
+lumo_merged_fn = lumofile.merge_layout(fullfile(lmpath, 'samples', 'sample_v040_no_layout.LUMO'), ...
+                                       'C:\Users\Sam\AppData\Local\Gowerlabs\Lumo\coordinates_268.json');
+ld = LumoData(lumo_merged_fn);
 
-
-
-
+assert(isstruct(ld.enum.groups.layout))
 
 
 
