@@ -145,7 +145,8 @@ end
 
 %%% Create output directory and copy contents
 [lf_filepath, lf_name, lf_ext] = fileparts(lumo_in_fn);
-lumo_merged_fn = fullfile(lf_filepath, lf_name + '_merged_' + uid_name + lf_ext);
+lf_final_name = lf_name + '_merged_' + uid_name + lf_ext;
+lumo_merged_fn = fullfile(lf_filepath, lf_final_name);
 fprintf('Writing merged file to %s\n', lumo_merged_fn);
 
 [status,msg] = copyfile(lumo_in_fn, lumo_merged_fn);
