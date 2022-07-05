@@ -16,14 +16,6 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 %
 %   Optional Parameters:
 %
-%   'style':    Certain analysis tools have specific expectations regarding channel
-%               ordering, landmark naming, etc. Selecting a specific style will modify the
-%               output structures to match the requirements listed below.
-%
-%               'mne-nirs':   1. Reorder output to group channels by optode, alternating
-%                                wavelengths.
-%                             2. Rename landmarks: Al -> LPA, Ar -> RPA, Nasion -> NASION
-%
 %   'meta':     Additional metadata can be written to the SNIRF file containing an 
 %               abbreviated and flattened representation of the canonical layout for each
 %               group defined in `/nirs(i)`.
@@ -72,12 +64,9 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 
 % Get optional inputs
 p = inputParser;
-expected_styles = {'standard', 'mne-nirs'};
 expected_styles_meta = {'standard', 'extended'};
-addOptional(p, 'style', 'standard', @(x) any(validatestring(x, expected_styles)));
 addOptional(p, 'meta', 'standard', @(x) any(validatestring(x, expected_styles_meta)));
 parse(p, varargin{:})
-style = p.Results.style;
 meta_style = p.Results.meta;
 
 
@@ -118,14 +107,7 @@ for gidx = 1:ng
   end
   
   % Build permutation for ordering
-  switch style
-    case 'standard' 
-      chn_perm = [];
-    case 'mne-nirs'
-        [~, chn_perm] = sortrows(glch, [1 3 2]);    
-    otherwise
-        error('Invalid style selection, consult help');
-  end
+  chn_perm = [];
     
   % Create NIRS root
   % /nirs{i}
@@ -259,7 +241,7 @@ for gidx = 1:ng
   % /nirs{i}/probe
   %
   nirs_probe_group = create_group(nirs_group, 'probe');
-  snirf.nirs(gidx).probe = write_probe(nirs_probe_group, style, enum, gidx, glsrc, gldet, glwl);
+  snirf.nirs(gidx).probe = write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl);
   H5G.close(nirs_probe_group);
   
   %% Create stimulus group
@@ -420,7 +402,7 @@ function [ml] = write_measlist(nirs_data_group, chn_perm, gi, enum, glch)
 end
 
   
-function [probe] = write_probe(nirs_probe_group, style, enum, gidx, glsrc, gldet, glwl)
+function [probe] = write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl)
   
   probe.wavelengths = write_double(nirs_probe_group, 'wavelengths', double(glwl));
    
@@ -498,22 +480,7 @@ function [probe] = write_probe(nirs_probe_group, style, enum, gidx, glsrc, gldet
       landmarkPos3D(i, 1:3) = [landmark.coords_3d.x landmark.coords_3d.y landmark.coords_3d.z];
       landmarkPos3D(i, 4) = i;
     end
-    
-    switch style
-        case 'mne-nirs'
-          
-          reqd_landmarks = {'Al', 'Ar', 'Nasion'};
-          for j = 1:length(reqd_landmarks)
-            if ~any(strcmp(landmarkLabels, reqd_landmarks{j}))
-              error('Layout does not contain the required landmarks for export to MNE-NIRS');
-            end
-          end
-             
-          landmarkLabels = strrep(landmarkLabels, 'Al', 'LPA');
-          landmarkLabels = strrep(landmarkLabels, 'Ar', 'RPA');
-          landmarkLabels = strrep(landmarkLabels, 'Nasion', 'NASION');
-    end
-    
+        
     probe.landmarkPos3D = write_double(nirs_probe_group, 'landmarkPos3D', double(landmarkPos3D));
     probe.landmarkLabels = write_var_string(nirs_probe_group, 'landmarkLabels', landmarkLabels);
     
