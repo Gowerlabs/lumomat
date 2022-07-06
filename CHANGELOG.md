@@ -2,6 +2,8 @@
 
 ## v1.2.0 (master)
 
+- remove 'mne-nirs' style output, default now supported upstream
+
 
 ## v1.1.0
 
