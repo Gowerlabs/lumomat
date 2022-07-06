@@ -27,6 +27,9 @@ function lumo_merged_fn = merge_layout(lumo_in_fn, layout_file)
 %   (C) Gowerlabs Ltd., 2022
 %
 
+% Normalise strings
+[lumo_in_fn, layout_file] = convertStringsToChars(lumo_in_fn, layout_file);
+
 %%% Check for existance of the input LUMO directory and layout file
 if exist(lumo_in_fn, 'dir') ~= 7
   error('The specified LUMO file (%s) cannot be found', lumo_in_fn)

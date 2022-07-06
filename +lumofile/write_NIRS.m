@@ -87,6 +87,9 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 % - Check with RJC regarding event data construction
 %
 
+% Normalise strings
+nirsfn = convertStringsToChars(nirsfn);
+
 nirs = lumo_build_NIRS(enum, data, events, varargin{:});
 
 if ~isempty(nirsfn)

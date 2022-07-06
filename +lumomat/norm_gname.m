@@ -3,6 +3,9 @@ function [group_id] = norm_gname(name)
 %
 % Input must be a group name such as 'CA0001', or 'GA0001'
 
+% Normalise strings
+name = convertStringsToChars(name);
+
 if ~ischar(name)
   error('Input group name must be a string');
 end

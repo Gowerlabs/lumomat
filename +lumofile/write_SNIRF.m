@@ -62,6 +62,9 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 %          for significant file size reduction.
 %
 
+% Normalise strings
+snirffn = convertStringsToChars(snirffn);
+
 % Get optional inputs
 p = inputParser;
 expected_styles_meta = {'standard', 'extended'};
