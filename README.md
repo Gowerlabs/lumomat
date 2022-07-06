@@ -309,12 +309,6 @@ snirf = data.write_SNIRF(filename);
 
 The returned structure represents the contents of the SNIRF output file as a nested MATLAB structure, where indexed groups are replaced with arrays of structures. This data structure can be used directly if a globally indexed spectroscopic representation is of use.
 
-Certain analysis tools have specific expectations regarding channel ordering, landmark naming, etc. Selecting a specific style will modify the output structures to match the requirements. Supported styles are listed in online help. For example, to export to an MNE-NIRS compatible file:
-
-```
-snirf = data.write_SNIRF(filename, 'style', 'mne-nirs');
-```
-
 We can examine the root of the first measurement group `nirs{1}`:
 
 ```

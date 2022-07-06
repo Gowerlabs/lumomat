@@ -31,7 +31,7 @@ for i = 1:length(lufr_sample_files)
   [p,n,e] = fileparts(lufr_sample_fn);
   snirffn = fullfile(p, [n '.snirf']);
 
-  snirf = ld.write_SNIRF(snirffn, 'style', 'mne-nirs');
+  snirf = ld.write_SNIRF(snirffn);
 
 end
 
