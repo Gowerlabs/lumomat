@@ -127,6 +127,9 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %   (C) Gowerlabs Ltd., 2022
 %
 
+% Normalise strings
+lufrfn = convertStringsToChars(lufrfn);
+
 % Parse the inputs
 apply_filter = false;
 

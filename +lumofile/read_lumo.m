@@ -128,6 +128,9 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 % - Add optode filtering in the style of lufr load
 %
 
+% Normalise strings
+lf_dirs = convertStringsToChars(lf_dirs);
+
 ts_load = tic;
 
 % Parse inputs
