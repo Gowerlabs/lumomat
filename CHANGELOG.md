@@ -1,9 +1,11 @@
 # lumomat
 
-## v1.2.0 (master)
+## v1.3.0 (master)
+
+## v1.2.0
 
 - remove 'mne-nirs' style output, default now supported upstream
-
+- add string to character array input validation
 
 ## v1.1.0
 
