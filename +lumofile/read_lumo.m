@@ -129,7 +129,7 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %
 
 % Normalise strings
-lf_dirs = convertStringsToChars(lf_dirs);
+lf_dir = convertStringsToChars(lf_dir);
 
 ts_load = tic;
 
