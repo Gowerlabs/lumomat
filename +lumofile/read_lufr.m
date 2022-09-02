@@ -188,7 +188,7 @@ end
 
 % Check the file version
 filever = fread(fid, 1, 'uint8=>double');
-if(filever ~= 1 && filever ~=2)
+if(filever ~= 1 && filever ~=2 && filever ~=3)
     error('The lumo frame file is of an unknown version %i', filever);
 else
   fprintf('LUFR file version %d\n', filever);
@@ -205,7 +205,7 @@ fseek(fid, 3, 'cof');
 
 % Get endieness marker
 endmarker = fread(fid, 1, 'uint16=>uint16');
-if(endmarker ~= 0x1234)
+if(endmarker ~= hex2dec('1234'))
     error('The lumo frame file endienness is not supported');
 end
 
@@ -604,7 +604,12 @@ tmpudat = 10e-3; %Always at 100Hz = 1/10ms
 % Rework the group ID to a hex string and descriptive name
 [uid_hex, uid_name] = lumomat.norm_gid(enum.groups(gidx + 1).id);
 enum.groups(gidx + 1).id = uid_hex;
+if(filever > 2)
+    fprintf("Embedded group name for index %u: %s\n", gidx, enum.groups(gidx + 1).name);
+else
 enum.groups(gidx + 1).name = uid_name;
+end
+
 
 % Convert all indices to one-based for MATLAB
 nc = length(enum.groups(gidx + 1).channels);
@@ -638,7 +643,9 @@ for ni = 1:nd
   enum.groups(gidx + 1).nodes(ni).fwver = sprintf('%d.%d.%d', fwmajor, fwminor, fwpatch);
   
   % Remove extraneous fields
-  enum.groups(gidx + 1).nodes(ni).optodes = rmfield(enum.groups(gidx + 1).nodes(ni).optodes, {'rho', 'theta'});
+  if(filever < 3)
+    enum.groups(gidx + 1).nodes(ni).optodes = rmfield(enum.groups(gidx + 1).nodes(ni).optodes, {'rho', 'theta'});
+  end
   
   % Change optode naming from stack '0', '1', '2', '3', to canonical '1', '2', '3', '4'.
   no = length(enum.groups(gidx + 1).nodes(ni).optodes);
@@ -674,7 +681,7 @@ for i = 1:size(srcpwr,3)
     srcpwr_ref = srcpwr(:,:,i);
   else
     if ~all(all(srcpwr_ref == srcpwr(:,:,i)))
-      error('Unable to load lufr file: time varying source powers are not supported');
+      warning('Time varying source powers are not supported, output will be inconsistent');
     end
   end
   
