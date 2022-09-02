@@ -167,6 +167,8 @@ tag_information = 1;
 tag_enumeration = 2;
 tag_frame = 3;
 tag_event = 4;
+tag_logentry = 5;   % Introduced in v3
+tag_layout = 6;     % Introduced in v3
 
 % Record the minimum number of wavelengths expected, which is used
 % during channel filtering.
@@ -226,6 +228,8 @@ n_frames = 0;
 n_enums = 0;
 n_events = 0;
 n_infos = 0;
+n_logentries = 0;
+n_layouts = 0;
 
 % Special case the enumeration so we can access it easily
 rc_enum_idx = 0;
@@ -315,6 +319,14 @@ while(~feof(fid))
         n_events = n_events + 1;
     end
     
+    if(recordtag == tag_logentry)
+        n_logentries = n_logentries + 1;
+    end
+    
+    if(recordtag == tag_layout)
+        n_layouts = n_layouts + 1;
+    end
+        
     % Skip to the next
     fseek(fid, rcoffset(end) + recordlen, 'bof');
     
@@ -444,14 +456,15 @@ if(apply_filter)
 else
     chdat = zeros(n_schans, n_frames, 'single');        % Channel data
 end
-dkdat = zeros(n_dchans, n_frames, 'single');        % Dark channel data
-tmpdat = zeros(n_nodes, n_frames, 'single');        % Temperature
-vindat = zeros(n_nodes, n_frames, 'single');        % Input voltage
-srcpwr = zeros(n_nodes, n_spw, n_frames, 'single'); % Source powers
+dkdat = zeros(n_dchans, n_frames, 'single');            % Dark channel data
+tmpdat = zeros(n_nodes, n_frames, 'single');            % Temperature
+vindat = zeros(n_nodes, n_frames, 'single');            % Input voltage
+srcpwr = zeros(n_nodes, n_spw, n_frames, 'single');     % Source powers
 detmax = zeros(n_nodes, n_row, n_det, n_frames, 'single'); % Detector maximum
-accdat = zeros(n_nodes, 3, n_mpu, n_frames);        % MPU data (concatenated later)
-gyrdat = zeros(n_nodes, 3, n_mpu, n_frames);        % MPU data (concatenated later)
+accdat = zeros(n_nodes, 3, n_mpu, n_frames);            % MPU data (concatenated later)
+gyrdat = zeros(n_nodes, 3, n_mpu, n_frames);            % MPU data (concatenated later)
 
+errcnt = zeros(n_frames,1);                             % Errors in frame counter
 
 % % Loop over the frames and get them data
 
@@ -475,8 +488,9 @@ for i = 1:length(rclength)
                 continue;
             end
             
-            % Skip frame dimension data
-            fread(fid, 10, 'int32=>double');
+            % Get frame dimension data to locate the error counter
+            sizeparam = fread(fid, 10, 'int32=>double');
+            errcnt(i_fr) = sizeparam(2);
         else
             
             % Skip over the frame dimension data
@@ -713,6 +727,15 @@ for ni = 1:nd
   
 end
 
+%%% Check for bad frames
+if(any(errcnt(:)))
+    warning([...
+        'The specified LUFR file contains incomplete frames. Consult the frame error '...
+        'counter to determine those frames for which the data is incomplete. Note that '...
+        'missing data will present as NaN in the associated data structure']);
+end
+
+
 %%% Add the layout
 %
 % LUFR files do not contain embedded layouts, so we take it from the user, or complain.
@@ -775,6 +798,7 @@ data = struct('chn_dat', chdat, ...
               'chn_dt', tchdat*1e3, ...
               'chn_fps', fps, ...
               'chn_sat', satflag,...
+              'err_cnt', errcnt,...
               'nframes', size(chdat, 2), ...
               'nchns', size(chdat, 1), ...
               'node_temp', tmpdat, ...
