@@ -169,6 +169,7 @@ tag_frame = 3;
 tag_event = 4;
 tag_logentry = 5;   % Introduced in v3
 tag_layout = 6;     % Introduced in v3
+tag_max = tag_layout;
 
 % Record the minimum number of wavelengths expected, which is used
 % during channel filtering.
@@ -244,7 +245,7 @@ while(~feof(fid))
         break;
     end
     
-    if(recordtag > 4)
+    if(recordtag > tag_max)
         if(feof(fid))
             break;
         end
@@ -320,10 +321,22 @@ while(~feof(fid))
     end
     
     if(recordtag == tag_logentry)
-        n_logentries = n_logentries + 1;
+      if(filever < 3)
+          error('LUFR file of version < 3 contains a log entry record');
+      end  
+      n_logentries = n_logentries + 1;
     end
     
     if(recordtag == tag_layout)
+        if(filever < 3)
+          error('LUFR file of version < 3 contains a layout record');
+        end
+        
+        group_idx = fread(fid, 1, 'int32=>doble');
+          if(group_idx ~= gidx)
+              fseek(fid, rcoffset(end) + recordlen, 'bof');
+              continue;
+          end
         n_layouts = n_layouts + 1;
     end
         
@@ -343,8 +356,12 @@ if(n_enums > 1)
     error('LUFR file contains more than one enumeration block');
 end
 
+if(n_layouts > 1)
+    error('LUFR file contains more than one layout file for group index %i', group_idx);
+end
+
 if length(rclength) == record_count
-    fprintf('LUFR file contains %d records, %d frames, %d events \n', length(rclength), n_frames, n_events);
+    fprintf('LUFR file contains %d records, %d frames, %d events, %d layouts \n', length(rclength), n_frames, n_events, n_layouts);
 else
     warning('LUFR file found %d records, %d frames, %d events in the input data file\n', length(rclength), n_frames, n_events);
 end
@@ -401,6 +418,10 @@ if(apply_filter)
     % Build the indexing arrays
     lin_src_node_id = [enum.groups(gidx + 1).channels.src_node_id].';
     lin_det_node_id = [enum.groups(gidx + 1).channels.det_node_id].';
+    
+    if(filever > 2)
+      error('Node filtering not supported on file version > 2');
+    end
     lin_src_opt = [enum.groups(gidx + 1).channels.src_optode_name].' - 64;    % ASCII 'A' -> 1
     lin_det_opt = [enum.groups(gidx + 1).channels.det_optode_name].' - 47;   % ASCII '0' -> 1
      
@@ -547,6 +568,16 @@ for i = 1:length(rclength)
         i_if = i_if + 1;
     end
     
+    if(rctag(i) == tag_layout)
+     
+      group_idx = fread(fid, 1, 'int32=>doble');
+      if(group_idx ~= gidx)
+          error('Group index mismatch processing embeddeing layout');
+      end
+      layoutstr = fread(fid, rclength(i)-4, 'char=>char');
+      
+    end
+    
 end
 
 
@@ -636,9 +667,11 @@ for ci = 1:nc
   % On versions <= 2 there is a bug in which the optode indices are incorrect in the node
   % table, but they are correct in the channel table, we can replace one with 'tother and also
   % make one-based at the same time.
-  enum.groups(gidx + 1).nodes(enum.groups(gidx + 1).channels(ci).src_node_idx).srcs(enum.groups(gidx + 1).channels(ci).src_idx).optode_idx =  enum.groups(gidx + 1).channels(ci).src_optode_idx + 1;
-  enum.groups(gidx + 1).nodes(enum.groups(gidx + 1).channels(ci).det_node_idx).dets(enum.groups(gidx + 1).channels(ci).det_idx).optode_idx =  enum.groups(gidx + 1).channels(ci).det_optode_idx + 1;
-  
+  if(filever < 3)
+    enum.groups(gidx + 1).nodes(enum.groups(gidx + 1).channels(ci).src_node_idx).srcs(enum.groups(gidx + 1).channels(ci).src_idx).optode_idx =  enum.groups(gidx + 1).channels(ci).src_optode_idx;
+    enum.groups(gidx + 1).nodes(enum.groups(gidx + 1).channels(ci).det_node_idx).dets(enum.groups(gidx + 1).channels(ci).det_idx).optode_idx =  enum.groups(gidx + 1).channels(ci).det_optode_idx;
+  end
+    
 end
 
 % Remove extraneous non-canonical fields from the channels structure
@@ -661,22 +694,35 @@ for ni = 1:nd
     enum.groups(gidx + 1).nodes(ni).optodes = rmfield(enum.groups(gidx + 1).nodes(ni).optodes, {'rho', 'theta'});
   end
   
-  % Change optode naming from stack '0', '1', '2', '3', to canonical '1', '2', '3', '4'.
+  % Change optode naming from stack '0', '1', '2', '3', to canonical '1', '2', '3', '4', on
+  % file versions < 3. On version >= 3 this is automatically done in the front end.
   no = length(enum.groups(gidx + 1).nodes(ni).optodes);
   for j = 1:no
-    
-    switch enum.groups(gidx + 1).nodes(ni).optodes(j).name
-      case '0'
-        enum.groups(gidx + 1).nodes(ni).optodes(j).name = '1';
-      case '1'
-        enum.groups(gidx + 1).nodes(ni).optodes(j).name = '2';
-      case '2'
-        enum.groups(gidx + 1).nodes(ni).optodes(j).name = '3';
-      case '3'
-        enum.groups(gidx + 1).nodes(ni).optodes(j).name = '4';
-    end
-    
+    if(filever < 3)
+      switch enum.groups(gidx + 1).nodes(ni).optodes(j).name
+        case '0'
+          enum.groups(gidx + 1).nodes(ni).optodes(j).name = '1';
+        case '1'
+          enum.groups(gidx + 1).nodes(ni).optodes(j).name = '2';
+        case '2'
+          enum.groups(gidx + 1).nodes(ni).optodes(j).name = '3';
+        case '3'
+          enum.groups(gidx + 1).nodes(ni).optodes(j).name = '4';
+      end
+    end    
   end
+
+  % One base the the src and detector optode indices
+  nso = length(enum.groups(gidx + 1).nodes(ni).srcs);
+  for j = 1:nso
+    enum.groups(gidx + 1).nodes(ni).srcs(j).optode_idx = enum.groups(gidx + 1).nodes(ni).srcs(j).optode_idx + 1;
+  end
+  
+  ndo = length(enum.groups(gidx + 1).nodes(ni).dets);
+  for j = 1:ndo
+    enum.groups(gidx + 1).nodes(ni).dets(j).optode_idx = enum.groups(gidx + 1).nodes(ni).dets(j).optode_idx+ 1;
+  end
+ 
   
 end
 
@@ -738,11 +784,12 @@ end
 
 %%% Add the layout
 %
-% LUFR files do not contain embedded layouts, so we take it from the user, or complain.
+% LUFR files may contain embedded layouts, or we can take it from the user, or complain.
 %
 
+
 % Load layout or take from the user
-if isempty(layout_override)
+if isempty(layout_override) & (n_layouts == 0)
   
   % The user has nor provided a layout, we must use the embedded data if it exists
   % enum.groups(gidx + 1).layout = [];
@@ -754,7 +801,7 @@ if isempty(layout_override)
       'this warning.']);
       
 else
-  
+    
   % The user has supplied a layout file
   if ischar(layout_override)
     
@@ -770,7 +817,18 @@ else
   elseif isstruct(layout_override)
     enum.groups(gidx + 1).layout = layout_override;
     fprintf('LUFR file using user-specified layout structure\n');
-  else
+  elseif (n_layouts == 1)
+    
+    try
+      layout_embed = jsondecode(layoutstr.');
+    catch e
+      fprintf('Error parsing embedded layout file\n');
+      rethrow(e);
+    end
+    enum.groups(gidx + 1).layout = lumofile.proc_layout(layout_embed);
+    
+    fprintf('LUFR file using embedded layoutfile\n');
+  else  
     error('The specified layout is neither a layout filename nor structure, consult help');
   end
     
