@@ -12,13 +12,13 @@ MATLAB tools for LUMO data.
 
 # Quickstart
 
-Load a `.lumo` file:
+Load a `.lumo` or a a `.lufr` file:
 
 ```
 data = LumoData(filename)
 ```
 
-Convert a `.lumo` file to a SNIRF file:
+Convert the file to a SNIRF file:
 
 ```
 data.write_SNIRF(filename);
@@ -124,8 +124,6 @@ ans =
     .
     .
 ```
-
-
 
 
 # Introduction
@@ -483,9 +481,15 @@ Warning: The specified LUMO file (group C002N / 20155487) does not contain an em
 
 Follow the guidance, or read more about Layouts in a later section.
 
+Similar functions exist to read `.lufr` files:
+
+```
+>> [enum, data, events] = lumofile.read_lufr('sample.lufr');
+```
+
 ## Enumeration, Enumeration, Enumeration
 
-When you load a `.lumo` file, `lumomat` constructs a canonical enumeration which provides a full description of the system. Navigating the enumeration allows the data to be interpreted and manipulated into the form required for further analysis.
+When you load a `.lumo` or a `.lufr` file, `lumomat` constructs a canonical enumeration which provides a full description of the system. Navigating the enumeration allows the data to be interpreted and manipulated into the form required for further analysis.
 
 The file we have loaded was recorded on a system using 12 tiles, resulting in 3456 channels. The enumeration contains all the information required to interpret the raw data. We can examine its contents:
 
@@ -500,7 +504,7 @@ enum =
     groups: [1×1 struct]
 ```
 
-The `hub` field contains information about the system that is not typically used during data analysis. The `groups` field is an array of structures, one for each of the groups connected to the LUMO hub. Since `.lumo` files only record a single group at a time, it is a scalar structure and no indexing is required in this case:
+The `hub` field contains information about the system that is not typically used during data analysis. The `groups` field is a structure describing the group, or cap. When hyper-scanning on a single hub (e.g. multiple groups are recorded at once), you must choose the group of interest when loading the data. Hence, `groups` is scalar and no indexing is required:
 
 ```
 >> enum.groups

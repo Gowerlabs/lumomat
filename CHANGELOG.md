@@ -1,6 +1,9 @@
 # lumomat
 
 ## v1.3.0 (master)
+ - read LUFR files v3
+ - support embeeded layouts in LUFR files
+ - support hyperscanning in LUFR files
 
 ## v1.2.0
 
