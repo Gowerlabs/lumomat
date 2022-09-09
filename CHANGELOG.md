@@ -1,5 +1,7 @@
 # lumomat
 
+## v1.4.0 (master)
+
 ## v1.3.0
  - read LUFR files v3
  - support embeeded layouts in LUFR files
