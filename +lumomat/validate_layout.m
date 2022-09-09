@@ -1,25 +1,23 @@
-function validate_layout(enum)
+function validate_layout(enum, gidx)
 %VALIDATE_LAYOUT Check consistency of the enumeration and the layout
 
-% We only handle one group for now.
-assert(length(enum.groups) == 1);
 
-idl = hex2dec(enum.groups.layout.id);
-idg = hex2dec(enum.groups.id);
+idl = hex2dec(enum.groups(gidx).layout.id);
+idg = hex2dec(enum.groups(gidx).id);
 
 % Check that the reocrded IDs match up
 if idl ~= idg
   warning('Layout ID (%s) does not match group ID (%s), enumeration may be inconsistent',...
-          enum.groups.layout.id, enum.groups.id);     
+          enum.groups(gidx).layout.id, enum.groups(gidx).id);     
 end
 
 % Check that all node IDs have docks
-nids = [enum.groups.nodes.id];
-dids = [enum.groups.layout.docks.id];
+nids = [enum.groups(gidx).nodes.id];
+dids = [enum.groups(gidx).layout.docks.id];
 
 if ~all(ismember(nids, dids))
   error('Layout ID (%s) does not contain dock positions for every node in the enumeration', ...
-        enum.groups.layout.id);
+        enum.groups(gidx).layout.id);
 end
 
 % % Check every optode can be accessed

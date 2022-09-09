@@ -44,14 +44,13 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %     enum:   An enumeration of the system containing:
 %
 %             enum.hub:     a description of the LUMO Hub used for recording
-%             enum.groups:  an array of structures describing each group (cap) connected.
-%                           LUMO files currently only store a single group, so this array
-%                           should be of length 1. The form of this structure is described
-%                           further below.
+%             enum.groups:  an array of structures describing each group (cap) connected. Since
+%                           we will only load a single group at a time, this structure is scalar
+%                           and indexing is not reuiqred.
 %
-%     data:   An array of structures of data form each group in the enumeration.
+%     data:   A structure of data form the selected group.
 %
-%     events: An array of strcutures details events recorded during recording.
+%     events: An array of structures detailing events recorded during recording.
 %
 %   The enumeration (enum)
 %
@@ -62,7 +61,7 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %
 %   This informaiton is exposed in the retuned enumeration:
 % 
-%   >> ch = enum.groups(gi).channels(98)
+%   >> ch = enum.groups.channels(98)
 % 
 %   ch = 
 % 
@@ -76,7 +75,7 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %   One may inspect the nature of the sources or detectors with reference to the node to 
 %   which it belongs, e.g., the wavelength of a source index 2 on node index 1:
 %
-%   nodes = enum.groups(gi).nodes;
+%   nodes = enum.groups.nodes;
 %   wl = nodes(ch.src_node_idx).srcs(ch.src_idx).wl
 % 
 %   wl =
@@ -95,7 +94,7 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %   structure. The docks of a layout are linked to enumeration by the node ID. For
 %   convenience, the layout structure contains a map from the ID to the index:
 %
-%   layout = enum.groups(gi).layout;
+%   layout = enum.groups.layout;
 %   node_id = nodes(ch.src_node_idx).id;
 % 
 %   >> optode = layout.docks(layout.dockmap(node_id)).optodes(optode_idx)
@@ -572,7 +571,7 @@ for i = 1:length(rclength)
      
       group_idx = fread(fid, 1, 'int32=>doble');
       if(group_idx ~= gidx)
-          error('Group index mismatch processing embeddeing layout');
+        continue;
       end
       layoutstr = fread(fid, rclength(i)-4, 'char=>char');
       
@@ -835,7 +834,7 @@ else
 end
 
 if isfield(enum.groups(gidx + 1), 'layout')
-  lumomat.validate_layout(enum);
+  lumomat.validate_layout(enum, gidx + 1);
 else
   enum.groups(gidx + 1).layout = [];
 end
@@ -865,5 +864,7 @@ data = struct('chn_dat', chdat, ...
               'node_acc', accdat, ...
               'node_gyr', gyrdat);
               
-            
+% Remove all enumeration data other than that requested
+enum.groups = enum.groups(gidx+1);
+
 end

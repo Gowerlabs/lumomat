@@ -34,11 +34,11 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %
 %             enum.hub:     a description of the LUMO Hub used for recording
 %             enum.groups:  an array of structures describing each group (cap) connected.
-%                           LUMO files currently only store a single group, so this array
-%                           should be of length 1. The form of this structure is described
-%                           further below.
+%                           LUMO files only store a single group, so this array is of length 1
+%                           and indexing is not required. The form of this structure is
+%                           described further below.
 %
-%     data:   An array of structures of data form each group in the enumeration.
+%     data:   A structure of data form the selected group.
 %
 %     events: An array of strcutures details events recorded during recording.
 %
@@ -65,7 +65,7 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %   One may inspect the nature of the sources or detectors with reference to the node to
 %   which it belongs, e.g., the wavelength of a source index 2 on node index 1:
 %
-%   nodes = enum.groups(gi).nodes;
+%   nodes = enum.groups.nodes;
 %   wl = nodes(ch.src_node_idx).srcs(ch.src_idx).wl
 %
 %   wl =
@@ -84,7 +84,7 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %   structure. The docks of a layout are linked to enumeration by the node ID. For
 %   convenience, the layout structure contains a map from the ID to the index:
 %
-%   layout = enum.groups(gi).layout;
+%   layout = enum.groups.layout;
 %   node_id = nodes(ch.src_node_idx).id;
 %
 %   >> optode = layout.docks(layout.dockmap(node_id)).optodes(optode_idx)
