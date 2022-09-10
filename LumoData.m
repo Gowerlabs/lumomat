@@ -470,14 +470,14 @@ classdef LumoData
       
     end
     
-    % Producing a flat output
+    % Plot intensity falloff, split by wavelength
     %
     function plot_falloff(obj, varargin)
       
       % Group
       gidx = method_group_idx(obj, varargin{:});
       
-      % Form channel distances
+      % Form channel distances and wavelengths
       nch = length(obj.enum.groups(gidx).channels);
       chlen = zeros(nch,1);
       chwav = zeros(nch,1);
@@ -508,8 +508,10 @@ classdef LumoData
         
       end
       
+      % Compute mean
       chmean = mean(obj.data.chn_dat, 2);
       
+      % Split by wavelength
       chl735 = chlen(chwav == 735);
       chm735 = chmean(chwav == 735);
       
