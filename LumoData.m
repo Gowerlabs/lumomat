@@ -470,6 +470,65 @@ classdef LumoData
       
     end
     
+    % Producing a flat output
+    %
+    function plot_falloff(obj, varargin)
+      
+      % Group
+      gidx = method_group_idx(obj, varargin{:});
+      
+      % Form channel distances
+      nch = length(obj.enum.groups(gidx).channels);
+      chlen = zeros(nch,1);
+      chwav = zeros(nch,1);
+      
+      for i = 1:nch
+        
+        ch = obj.enum.groups(gidx).channels(i);
+        
+        det_node = obj.enum.groups(gidx).nodes(ch.det_node_idx);
+        det_idx = ch.det_idx;
+        det_optode_idx = det_node.dets(det_idx).optode_idx;
+        det_dock_idx = obj.enum.groups(gidx).layout.dockmap(det_node.id);
+        det_dock = obj.enum.groups(gidx).layout.docks(det_dock_idx);
+        det_optode_loc = det_dock.optodes(det_optode_idx).coords_3d;
+                
+        src_node = obj.enum.groups(gidx).nodes(ch.src_node_idx);
+        src_idx = ch.src_idx;
+        src_optode_idx = src_node.srcs(src_idx).optode_idx;
+        src_dock_idx = obj.enum.groups(gidx).layout.dockmap(src_node.id);
+        src_dock = obj.enum.groups(gidx).layout.docks(src_dock_idx);
+        src_optode_loc = src_dock.optodes(src_optode_idx).coords_3d;
+                
+        dc = [det_optode_loc.x det_optode_loc.y det_optode_loc.z];
+        sc = [src_optode_loc.x src_optode_loc.y src_optode_loc.z];
+        
+        chlen(i) = sqrt(sum((sc - dc).^2));
+        chwav(i) = obj.enum.groups(gidx).nodes(ch.src_node_idx).srcs(src_idx).wl;
+        
+      end
+      
+      chmean = mean(obj.data.chn_dat, 2);
+      
+      chl735 = chlen(chwav == 735);
+      chm735 = chmean(chwav == 735);
+      
+      chl850 = chlen(chwav == 850);
+      chm850 = chmean(chwav == 850);
+      
+      figure()
+      scatter(chl735, 20*log10(chm735), '.r');
+      hold on;
+      scatter(chl850, 20*log10(chm850), '.b');
+      xlabel('Distance (mm)');
+      ylabel('Intensity (dB)');
+      title(['Intensity falloff: ' obj.enum.groups(gidx).name]);
+      axis([0 80 -120 0]);
+      legend('735nm', '850nm');
+      
+    end
+ 
+    
   end
   
   methods (Access = private)
