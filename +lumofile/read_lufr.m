@@ -203,7 +203,18 @@ if(filever > 1)
 end
 
 % Skip over zeros
-fseek(fid, 3, 'cof');
+if(filever > 2)
+  flags = fread(fid, 3, 'uint8=>double');
+  if(flags(2) == 1)
+    warning('Gain lock low enabled');
+  end
+  if(flags(2) == 2)
+    warning('Gain lock high enabled');
+  end
+  
+else
+  fseek(fid, 3, 'cof');
+end
 
 % Get endieness marker
 endmarker = fread(fid, 1, 'uint16=>uint16');
