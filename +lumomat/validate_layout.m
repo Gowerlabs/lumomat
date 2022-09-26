@@ -1,9 +1,8 @@
 function validate_layout(enum, gidx)
 %VALIDATE_LAYOUT Check consistency of the enumeration and the layout
 
-
-idl = hex2dec(enum.groups(gidx).layout.id);
-idg = hex2dec(enum.groups(gidx).id);
+idl = sscanf(enum.groups(gidx).layout.id, '%x');
+idg = sscanf(enum.groups(gidx).id, '%x');
 
 % Check that the reocrded IDs match up
 if idl ~= idg
