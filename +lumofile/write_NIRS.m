@@ -98,7 +98,7 @@ end
 function [nirs] = lumo_build_NIRS(enum, data, events, varargin)
 
 p = inputParser;
-expected_styles = {'standard', 'flat', 'dhtoolbox'};
+expected_styles = {'standard', 'flat'};
 addOptional(p, 'sd_style', 'standard', @(x) any(validatestring(x, expected_styles)));
 addOptional(p, 'group', 1, @(x) (isnumeric(x) && x > 0));
 addOptional(p, 'evtfilt', true, @islogical);
