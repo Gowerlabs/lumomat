@@ -1,6 +1,8 @@
 # lumomat
 
-## v1.4.0 (master)
+## v1.4.0
+  - fix bug reading certain LUFR files with embedded layouts
+  - add bad frame markers to data and output files
 
 ## v1.3.0
  - read LUFR files v3

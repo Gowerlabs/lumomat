@@ -36,8 +36,9 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %                 - det_opt_id is the detector optode index, [1, 4].
 %
 %                When using this option, one must index into the enumeration data using the
-%                returned chperm array to map from the appropriate elements of the output
-%                data to the global enumeration.
+%                permutation array returned in the data structure (data.chn_prem) in order
+%                to map from the appropriate elements of the output data to the global
+%                enumeration.
 %
 %   Returns:
 %
@@ -875,6 +876,11 @@ data = struct('chn_dat', chdat, ...
               'node_acc', accdat, ...
               'node_gyr', gyrdat);
               
+% Add the channel permutation
+if(apply_filter)
+  enum.groups(gidx+1).chn_perm = chperm;
+end
+
 % Remove all enumeration data other than that requested
 enum.groups = enum.groups(gidx+1);
 

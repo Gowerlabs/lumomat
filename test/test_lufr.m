@@ -94,3 +94,8 @@ assert(norm(nirs_sample.SD3D.DetPos - nirs_test.SD3D.DetPos) < 1e-9);
 assert(all(all(nirs_sample.SD3D.MeasList == nirs_test.SD3D.MeasList)));
 assert(all(nirs_sample.SD3D.MeasListAct == nirs_test.SD3D.MeasListAct));
 % assert(all(nirs_sample.SD3D.MeasListActSat == nirs_test.SD3D.MeasListActSat));
+
+
+
+%% Test 4: Load a version 3 as a LumoData object
+lufr_ld = LumoData(fullfile(cpath, 'samples', 'sample_lufr_v3_with_layout.lufr'));

@@ -65,12 +65,12 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %
 %   SD.SpatialUnit:     A string representing the SI units of distance
 %
-%   lumo.chn_sat:       Vector (or matrix) of logical values which indicate if a particular
+%   SD.SrcPowers:       Vector of source powers per channel.
+%
+%   SD.MeasListActSat: c Vector (or matrix) of logical values which indicate if a particular
 %                       channel is saturated during the recording. When this field is a 
 %                       matrix, the saturation flag is provided for every frame in the
 %                       recording, for more granular exclusion of data.
-%
-%   lumo.src_pwr:       Vector of source powers per channel.
 %
 %   lumo.chn_sort_perm: Permutation which maps from the re-indexed channel listing
 %                       constructed for NIRS back to the canonical indexing
@@ -80,11 +80,6 @@ function [nirs] = write_NIRS(nirsfn, enum, data, events, varargin)
 %
 %
 %   (C) Gowerlabs Ltd., 2022
-%
-
-%%% TODOS
-%
-% - Check with RJC regarding event data construction
 %
 
 % Normalise strings
@@ -233,8 +228,16 @@ SD.MeasList(:,4) = glch(:,2);           % Global wavelength index
 if ~isempty(events)
   
   if event_filter
-    events = events([events.mark] ~= newline);
-    events = events([events.mark] ~= '$');
+    
+    kl = ones(length(events),1);
+    for i = 1:length(events)
+      if(length(events(i).mark) == 1)
+        kl(i) = events(i).mark ~= newline;
+        kl(i) = events(i).mark ~= '$';
+      end
+    end
+    events = events(kl);
+    
   end
   
   % Convert to seconds
@@ -303,6 +306,11 @@ end
 
 % Add lumo extension variables
 nirs.lumo.chn_sort_perm = perm;
+
+if isfield(data(gi), 'err_cnt')
+  nirs.ErrorFlags = data(gi).err_cnt;
+end
+    
 
 end
 

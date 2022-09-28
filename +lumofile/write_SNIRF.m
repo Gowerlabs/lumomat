@@ -146,8 +146,12 @@ for gidx = 1:ng
   
   % Write global saturation
   mdt.saturationFlags = write_int32(nirs_meta_group, 'saturationFlags', any(data(gidx).chn_sat, 2));
-
   
+  % Write frame errors
+  if isfield(data(gidx), 'err_cnt')
+    mdt.errorFlags = write_int32(nirs_meta_group, 'errorFlags',  logical(data(gidx).err_cnt > 0));
+  end
+    
   if strcmp(meta_style, 'extended')
     
     % LUMO specific metadata
@@ -221,11 +225,14 @@ for gidx = 1:ng
       H5G.close(dock_group);
     end
 
-    % Assign metadata tags
-    snirf.nirs(gidx).metaDataTags = mdt;
+  
 
     H5G.close(lumo_md_group);  
   end
+  
+  % Assign metadata tags
+  snirf.nirs(gidx).metaDataTags = mdt;
+    
   H5G.close(nirs_meta_group);
   
   %% Create data block
@@ -292,7 +299,7 @@ for gidx = 1:ng
       H5G.close(nirs_aux_sat);
       auxi = auxi+1;
   end
-  
+    
   % Temperature
   if isfield(data(gidx), 'node_temp')
       nirs_aux_temp = create_group(nirs_group, ['aux' num2str(auxi)]); 
