@@ -229,11 +229,12 @@ if ~isempty(events)
   
   if event_filter
     
-    kl = ones(length(events),1);
+    kl = true(length(events),1);
     for i = 1:length(events)
       if(length(events(i).mark) == 1)
         kl(i) = events(i).mark ~= newline;
         kl(i) = events(i).mark ~= '$';
+        kl(i) = events(i).mark ~= char(10);
       end
     end
     events = events(kl);
