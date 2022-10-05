@@ -234,7 +234,7 @@ if ~isempty(events)
       if(length(events(i).mark) == 1)
         kl(i) = events(i).mark ~= newline;
         kl(i) = events(i).mark ~= '$';
-         kl(i) = events(i).mark ~= char(10);
+        kl(i) = events(i).mark ~= char(10);
       end
     end
     events = events(kl);
