@@ -24,8 +24,9 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %                       struct: a layout structure in the format returned by
 %                               lumofile.read_layout (see function help for details)
 %
-%   'chfilter':  When loading the data, keep only those channels for which an entry is
-%                provided in the provided matrix. The matrix should have rows of the form:
+%   'optfilter': When loading the data, keep only those channels which are recorded on 
+%                optode pairs provided in the specified matrix. The matrix should have rows 
+%                of the form:
 %
 %                [ src_node_id src_opt_id det_node_id det_opt_id]
 %                   
@@ -34,11 +35,6 @@ function [enum, data, events] = read_lufr(lufrfn, varargin)
 %                 - src_opt_id is the source optode, indexed as A=1, B=2, C=3
 %                 - det_node_id is the one-indexed dock ID of the detector node
 %                 - det_opt_id is the detector optode index, [1, 4].
-%
-%                When using this option, one must index into the enumeration data using the
-%                permutation array returned in the data structure (data.chn_prem) in order
-%                to map from the appropriate elements of the output data to the global
-%                enumeration.
 %
 %   Returns:
 %
@@ -430,11 +426,13 @@ if(apply_filter)
     lin_src_node_id = [enum.groups(gidx + 1).channels.src_node_id].';
     lin_det_node_id = [enum.groups(gidx + 1).channels.det_node_id].';
     
-    if(filever > 2)
-      error('Node filtering not supported on file version > 2');
-    end
     lin_src_opt = [enum.groups(gidx + 1).channels.src_optode_name].' - 64;    % ASCII 'A' -> 1
-    lin_det_opt = [enum.groups(gidx + 1).channels.det_optode_name].' - 47;   % ASCII '0' -> 1
+    
+    if(filever > 2)
+      lin_det_opt = [enum.groups(gidx + 1).channels.det_optode_name].' - 48;   % ASCII '1' -> 1
+    else
+      lin_det_opt = [enum.groups(gidx + 1).channels.det_optode_name].' - 47;   % ASCII '0' -> 1
+    end
      
     % Over every entry in the keep list
     k = 1;
@@ -879,6 +877,7 @@ data = struct('chn_dat', chdat, ...
 % Add the channel permutation
 if(apply_filter)
   enum.groups(gidx+1).chn_perm = chperm;
+  enum.groups(gidx+1).channels = enum.groups(gidx+1).channels(chperm);
 end
 
 % Remove all enumeration data other than that requested

@@ -70,6 +70,20 @@ classdef LumoData
       %                     must be present for each occupied dock in the recording with the
       %                     apprporiate dock ID.
       %
+      %   Optional Parameters (LUFR only):
+      %
+      %   'optfilter':      When loading the data, keep only those channels which are recorded on 
+      %                     optode pairs provided in the specified matrix. The matrix should have rows 
+      %                     of the form:
+      % 
+      %                     [ src_node_id src_opt_id det_node_id det_opt_id]
+      %                   
+      %                     where:
+      %                       - src_node_id is the one-indexed dock ID of the source node
+      %                       - src_opt_id is the source optode, indexed as A=1, B=2, C=3
+      %                       - det_node_id is the one-indexed dock ID of the detector node
+      %                       - det_opt_id is the detector optode index, [1, 4].      
+      %
       %
       %   (C) Gowerlabs Ltd., 2022
       %
