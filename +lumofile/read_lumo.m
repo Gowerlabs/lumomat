@@ -228,6 +228,7 @@ if ~isempty(enum.groups(gi).layout)
     gi, length(enum.groups(gi).layout.docks), length(enum.groups(gi).layout.docks)*7);
 end
 
+[chn_dat] = load_lumo_data(lf_dir, lf_desc, lf_dataparam);
 
 data = struct('chn_dat', chn_dat, ...
   'chn_fps', lf_dataparam.chn_fps, ...
