@@ -24,10 +24,6 @@ function [enum, data, events] = read_lumo(lf_dir, varargin)
 %                     based upon measurements of a physical layout, entries must be present
 %                     for each occupied dock in the recording with the apprporiate dock ID.
 %
-%   'ignore_memory':  A logical value which indicates if the function should ignore any
-%                     potential performance issues arising from loading large amounts of
-%                     data. Defaults to false.
-%
 %   Returns:
 %
 %     enum:   An enumeration of the system containing:
@@ -135,11 +131,9 @@ ts_load = tic;
 
 % Parse inputs
 p = inputParser;
-addParameter(p, 'ignore_memory', false, @islogical);
 addParameter(p, 'layout', []);
 parse(p, varargin{:});
 
-ignore_memory = p.Results.ignore_memory;
 layout_override = p.Results.layout;
 
 % Fix the group for LUMO files
@@ -234,24 +228,7 @@ if ~isempty(enum.groups(gi).layout)
     gi, length(enum.groups(gi).layout.docks), length(enum.groups(gi).layout.docks)*7);
 end
 
-% Load intensity files
-%
-% We first perform a check to ensure that the data structures to be created are not larger
-% than the available system memory. This test can be overriden by the user, though evidently
-% performance may suffer.
-[~,sysmem] = memory;
-mem_avail_mib = sysmem.PhysicalMemory.Available/1024/1024;
-mem_reqrd_mib = lf_dataparam.nframes * lf_dataparam.nchns * 4 /1024/1024;
-
-if  (mem_reqrd_mib < mem_avail_mib) || ignore_memory
-  [chn_dat] = load_lumo_data(lf_dir, lf_desc, lf_dataparam);
-else
-  error([...
-    'Loading intensity data for file %s will exceed available system memory. This error '...
-    'be supressed by passing the argument pair (''ignore_memory'', true), but performance ' ...
-    'may be impacted']);
-end
-
+[chn_dat] = load_lumo_data(lf_dir, lf_desc, lf_dataparam);
 
 data = struct('chn_dat', chn_dat, ...
   'chn_fps', lf_dataparam.chn_fps, ...
