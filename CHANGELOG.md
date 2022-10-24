@@ -1,5 +1,9 @@
 # lumomat
 
+## v1.4.1
+  - do not use the memory command on platforms upon which it is not supported
+  - update documentation on MPU data output ordering, extended metadata
+
 ## v1.4.0
   - fix bug reading certain LUFR files with embedded layouts
   - add bad frame markers to data and output files

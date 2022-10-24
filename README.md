@@ -292,9 +292,36 @@ ans =
 
 ## Channel saturation and frame errors
 
-In common with most systems, it is possible for channels to become saturated owing to subject movement following the setting of optical source powers. The multiplexing strategy employed by LUMO is such that saturated channels may appear to have a *lower* signal than when unsaturated. To determine if a channel is saturated, consult the appropriate entry in the `chn_sat` field of the `LumoData` object. Recent versions of the LUMO software will provide a saturation indication for every channel, for every frame, in which case the `chn_sat` field will have the dimensions `no. frame x no. channels`. Older versions of the software may only indicate if a channel is saturated at any time during the recording. 
+In common with most systems, it is possible for channels to become saturated owing to subject movement following the setting of optical source powers. The multiplexing strategy employed by LUMO is such that saturated channels may appear to have a *lower* signal than when unsaturated. To determine if a channel is saturated, consult the appropriate entry in the `chn_sat` field of the `LumoData` object. Recent versions of the LUMO software will provide a saturation indication for every channel, for every frame, in which case the `chn_sat` field will have the dimensions `<no. frame x no. channels>`. Older versions of the software may only indicate if a channel is saturated at any time during the recording. 
 
 In rare circumstances, high CPU or USB load on the acquisition computer may interrupt communication with LUMO. Recent versions of the LUMO software will tolerate small interruptions without terminating a recording, but the resultant frames should be excluded from analysis. To determine if a frame should be excluded, check for a non-zero entry in the `err_cnt` field of the `LumoData` object.
+
+## Auxiliary data
+
+The `LumoData` object may contain additional auxiliary data, such as measurements from integrated accelerometers, gyroscopes and temperature sensors:
+
+```
+>> data
+
+ans = 
+
+  struct with fields:
+
+         chn_dat: [24×1503 single]
+          chn_dt: 80
+         chn_fps: 12.5000
+         chn_sat: [24×1503 logical]
+         err_cnt: [1503×1 double]
+         nframes: 1503
+           nchns: 24
+       node_temp: [1×1503 single]
+     node_mpu_dt: 0.0100
+    node_mpu_fps: 100
+        node_acc: [1×3×12024 double]
+        node_gyr: [1×3×12024 double]
+```
+
+When present, the accelerometer and gyroscope data has dimensions of `<no. tiles x 3 x no. time>` where the second dimension is indexed over the x, y, and z-axes. The time vector for such motion data can be computed using the `node_mpu_dt` field.
 
 ## SNIRF output
 
@@ -389,9 +416,7 @@ This package writes additional fields in the SNIRF metadata, as permitted by the
  - `errorFlags`: a vector of integers in which a non-zero value in the `i`th element indicates that a data reception error occurred in the `i`th frame of the recording. This frame will likely contain NaN entries for one or more data types, from one or more tiles.
  - `groupName`: the name of group upon which the data was acquired (e.g. the cap serial number).
 
-Extended metadata can also be written to the file, however the format of this data is yet stable as it depends upon the resolution of a [query](https://github.com/fNIRS/snirf/issues/110) regarding the SNIRF specification. 
-
-To enable writing the extended metadata:
+Additional extended metadata can also be written to the output file, however the resultant file is not compliant with the SNIRF specification. To enable writing the extended metadata:
 
 ```
 snirf = data.write_SNIRF(filename, 'meta', 'extended');
