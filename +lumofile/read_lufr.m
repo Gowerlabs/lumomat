@@ -798,7 +798,7 @@ end
 
 
 % Load layout or take from the user
-if isempty(layout_override) & (n_layouts == 0)
+if isempty(layout_override) && (n_layouts == 0)
   
   % The user has nor provided a layout, we must use the embedded data if it exists
   % enum.groups(gidx + 1).layout = [];

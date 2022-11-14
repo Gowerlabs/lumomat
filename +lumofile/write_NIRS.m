@@ -210,6 +210,14 @@ for mi = 1:SD.nDets
   
 end
 
+% Add Landmarks
+SD3D.Landmarks = zeros(size(layout.landmarks,1),3);
+for li = 1:size(layout.landmarks,1)
+    SD3D.Landmarks(li,1) = layout.landmarks(li).coords_3d.x;
+    SD3D.Landmarks(li,2) = layout.landmarks(li).coords_3d.y;
+    SD3D.Landmarks(li,3) = layout.landmarks(li).coords_3d.z;
+end
+
 % Build MeasList
 %
 SD.MeasList = zeros(size(glch,1), 4);
