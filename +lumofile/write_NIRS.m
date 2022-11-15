@@ -210,7 +210,8 @@ for mi = 1:SD.nDets
   
 end
 
-% Add Landmarks
+% Add Landmarks to SD3D
+%
 SD3D.Landmarks = zeros(size(layout.landmarks,1),3);
 for li = 1:size(layout.landmarks,1)
     SD3D.Landmarks(li,1) = layout.landmarks(li).coords_3d.x;
