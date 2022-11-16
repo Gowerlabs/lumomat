@@ -94,7 +94,7 @@ end
 
 % Write format version
 %
-snirf.formatVersion = write_var_string(fid, '/formatVersion', '1.0');
+snirf.formatVersion = write_var_string(fid, '/formatVersion', '1.1');
 
 % Over each group
 %
@@ -294,8 +294,7 @@ for gidx = 1:ng
       nirs_aux_sat = create_group(nirs_group, ['aux' num2str(auxi)]); 
       snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_sat, 'name', 'saturationFlags');
       snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_sat, 'time', [0 data(gidx).chn_dt]);
-      snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_int32_compressed(nirs_aux_sat, 'dataTimeSeries', data(gidx).chn_sat.');
-     
+      snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single_compressed(nirs_aux_sat, 'dataTimeSeries', data(gidx).chn_sat.');
       H5G.close(nirs_aux_sat);
       auxi = auxi+1;
   end
@@ -627,6 +626,11 @@ end
 function val = write_single(base, path, val)
 tp = H5T.copy('H5T_IEEE_F32LE');
 write_core(base, path, single(val), tp, false, false);
+end
+
+function val = write_single_compressed(base, path, val)
+tp = H5T.copy('H5T_IEEE_F32LE');
+write_core(base, path, single(val), tp, false, true);
 end
 
 function write_core(base, path, val, tp, fix_shape, compress)
