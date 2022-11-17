@@ -860,6 +860,23 @@ else
   events = [];
 end
 
+% Filter events (remove non printable characters)
+evfilt = true(ne,1);
+for i = 1:ne
+    if(length(events(i).mark) == 1)
+        if events(i).mark < char(32)
+            evfilt(i) = false;
+        end
+    end
+end
+
+events = events(evfilt);
+
+if(sum(~evfilt) > 0)
+    fprintf('Filtering %d/%d invalid event markers from recording\n', sum(~evfilt), length(evfilt));
+end
+
+
 % Build data output structure
 data = struct('chn_dat', chdat, ...
               'chn_dt', tchdat*1e3, ...
