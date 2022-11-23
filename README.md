@@ -292,7 +292,9 @@ ans =
 
 ## Channel saturation and frame errors
 
-In common with most systems, it is possible for channels to become saturated owing to subject movement following the setting of optical source powers. The multiplexing strategy employed by LUMO is such that saturated channels may appear to have a *lower* signal than when unsaturated. To determine if a channel is saturated, consult the appropriate entry in the `chn_sat` field of the `LumoData` object. Recent versions of the LUMO software will provide a saturation indication for every channel, for every frame, in which case the `chn_sat` field will have the dimensions `<no. frame x no. channels>`. Older versions of the software may only indicate if a channel is saturated at any time during the recording. 
+In common with most systems, it is possible for channels to become saturated owing to subject movement following the setting of optical source powers. The multiplexing strategy employed by LUMO is such that saturated channels may appear to have a *lower* signal than when unsaturated. To determine if a channel is saturated, consult the appropriate entry in the `chn_sat` field of the `LumoData` object. 
+
+The format of the channel saturation data in the `LumoData` output depends on the version of the software which was used to record the data. Recent versions of the LUMO software will provide a saturation indication for every channel, for every frame, in which case the `chn_sat` field will have the dimensions `<no. frame x no. channels>`. Older versions of the software may not output the channel saturation data at all or only indicate if a channel is saturated at any time during the recording.
 
 In rare circumstances, high CPU or USB load on the acquisition computer may interrupt communication with LUMO. Recent versions of the LUMO software will tolerate small interruptions without terminating a recording, but the resultant frames should be excluded from analysis. To determine if a frame should be excluded, check for a non-zero entry in the `err_cnt` field of the `LumoData` object.
 
