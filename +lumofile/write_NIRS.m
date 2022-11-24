@@ -296,8 +296,10 @@ SD.MeasListAct = ones(size(SD.MeasList, 1), 1);
 %
 % This is a DOT-HUB extension which encodes if a channel is -ever- saturated. The full data
 % is exposed int the lumoext structure.
-SD.MeasListActSat = data(gi).chn_sat;
-SD.MeasListActSat = SD.MeasListActSat(perm,:);
+if isfield(data(gi), 'chn_sat')
+    SD.MeasListActSat = data(gi).chn_sat;
+    SD.MeasListActSat = SD.MeasListActSat(perm,:);
+end
 
 % Apply to 3D structure
 if strcmp(sdstyle,'flat')
