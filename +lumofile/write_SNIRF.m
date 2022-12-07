@@ -449,9 +449,9 @@ function [probe] = write_probe(nirs_probe_group, enum, gidx, glsrc, gldet, glwl)
     
   end
   
-  probe.soucePos2D = write_double(nirs_probe_group, 'sourcePos2D', sourcePos2D);
-  probe.soucePos3D = write_double(nirs_probe_group, 'sourcePos3D', sourcePos3D);
-  probe.souceLabels = write_var_string(nirs_probe_group, 'sourceLabels', sourceLabels);
+  probe.sourcePos2D = write_double(nirs_probe_group, 'sourcePos2D', sourcePos2D);
+  probe.sourcePos3D = write_double(nirs_probe_group, 'sourcePos3D', sourcePos3D);
+  probe.sourceLabels = write_var_string(nirs_probe_group, 'sourceLabels', sourceLabels);
   
   % Build detector positions
   detectorPos2D = zeros(ndet, 2);
