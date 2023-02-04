@@ -12,7 +12,7 @@ MATLAB tools for LUMO data.
 
 # Quickstart
 
-Load a `.lumo` or a a `.lufr` file:
+Load a `.lumo` or a `.lufr` file:
 
 ```
 data = LumoData(filename)
@@ -403,7 +403,7 @@ Some optional output fields are formatted in a manner specific to the LUMO syste
 
 ### LUMO stimulus data
 
-The SNIRF format expects stimuli to be be recorded as set of conditions, where each condition can have multiple trials which are recorded as a start time, a duration, and an amplitude. 
+The SNIRF format expects stimuli to be recorded as a set of conditions, where each condition can have multiple trials which are recorded as a start time, a duration, and an amplitude. 
 
 The LUMO system does not explicitly record stimuli in this format, instead it provides for the recording of *event markers*, each of which consists of a string (the name of the event) and the time of occurrence. In a practical (f)NIRS experiment event markers may be used with a-priori knowledge of the stimulus duration, or different markers might be used to indicate the start and end of a stimulus condition.
 
@@ -416,7 +416,7 @@ This package writes additional fields in the SNIRF metadata, as permitted by the
  - `lumomatVersion`: the version of the `lumomat` package which wrote the SNIRF file, a string representation of a semantic version number.
  - `saturationFlags`: a vector of integers in which a non-zero value in the `i`th element indicates that saturation of the `i`th channel occurred at some time during the recording. Transient saturation can occur during, e.g., movement, so this global flag can exclude many channels which are viable for the vast majority of the recording. Some versions of the LUMO software will export a time-series of saturation flags (see auxiliary measurements) to enable more granular channel filtering.
  - `errorFlags`: a vector of integers in which a non-zero value in the `i`th element indicates that a data reception error occurred in the `i`th frame of the recording. This frame will likely contain NaN entries for one or more data types, from one or more tiles.
- - `groupName`: the name of group upon which the data was acquired (e.g. the cap serial number).
+ - `groupName`: the name of the group upon which the data was acquired (e.g. the cap serial number).
 
 Additional extended metadata can also be written to the output file, however the resultant file is not compliant with the SNIRF specification. To enable writing the extended metadata:
 
@@ -484,7 +484,7 @@ The NIRS file contains an `SD` structure which describes the physical configurat
 
 ### Additional LUMO specific fields:
 
- - `SD.MeasListActSat`: a logical vector (or matrix) indicating if a channel is saturated. If this field is a vector, a non-zero (or logical true) entry in the `i`th index indicates that the `i`th channel was saturated at some point in the recording. Since transient effects such as movement can cause temporary saturation, the use of a single flag for each channel can cause the loss of a number of channels which are useful for a large proportion of the recording. More recent versions of the LUMOview software will output data which permits allows this field to be output as a matrix of values such that saturation can be identified per-channel, per-frame, allowing for more granular exclusion of saturated data. Contact Gowerlabs to update your software if this feature is desired.
+ - `SD.MeasListActSat`: a logical vector (or matrix) indicating if a channel is saturated. If this field is a vector, a non-zero (or logical true) entry in the `i`th index indicates that the `i`th channel was saturated at some point in the recording. Since transient effects such as movement can cause temporary saturation, the use of a single flag for each channel can cause the loss of a number of channels which are useful for a large proportion of the recording. More recent versions of the LUMOview software will output data which allows this field to be output as a matrix of values such that saturation can be identified per-channel, per-frame, allowing for more granular exclusion of saturated data. Contact Gowerlabs to update your software if this feature is desired.
  - `SD.SrcPowers`: a matrix of source powers expressed in percent, indexed by the global source index and wavelength. 
  - `ErrorFlags`: a vector of integers in which a non-zero value in the `i`th element indicates that a data reception error occurred in the `i`th frame of the recording. This frame will likely contain NaN entries for one or more data types, from one or more tiles.
 
