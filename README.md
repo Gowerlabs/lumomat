@@ -21,7 +21,7 @@ data = LumoData(filename)
 Convert the file to a SNIRF file:
 
 ```
-data.write_SNIRF(filename);
+data.write_SNIRF(snirf_filename);
 ```
 
 Get information about channel 342 of your data:
@@ -336,7 +336,7 @@ Whilst SNIRF has some support for local indexing (similar to the canonical index
 To construct a SNIRF structure and write a SNIRF file:
 
 ```
-snirf = data.write_SNIRF(filename);
+snirf = data.write_SNIRF(snirf_filename);
 ```
 
 The returned structure represents the contents of the SNIRF output file as a nested MATLAB structure, where indexed groups are replaced with arrays of structures. This data structure can be used directly if a globally indexed spectroscopic representation is of use.
@@ -421,7 +421,7 @@ This package writes additional fields in the SNIRF metadata, as permitted by the
 Additional extended metadata can also be written to the output file, however the resultant file is not compliant with the SNIRF specification. To enable writing the extended metadata:
 
 ```
-snirf = data.write_SNIRF(filename, 'meta', 'extended');
+snirf = data.write_SNIRF(snirf_filename, 'meta', 'extended');
 ```
 
 This will result in the following fields being written under the  `nirs(i)/metaDataTags/lumo/` group:
@@ -466,7 +466,7 @@ The NIRS file format is based upon MATLAB output files, and was originally used 
 To construct a NIRS structure and write a NIRS file:
 
 ```
-nirs = data.write_NIRS(filename);
+nirs = data.write_NIRS(nirs_filename);
 ```
 
 The NIRS file contains an `SD` structure which describes the physical configuration of the sources and detectors of the system. In some references this layout is considered to be two-dimensional, though the specification provides for three-dimensional co-ordinates. The `write_NIRS` method provides an option which allows the `SD` structure to be written in two different formats to accommodate varying use cases:
@@ -477,7 +477,7 @@ The NIRS file contains an `SD` structure which describes the physical configurat
  To select a scheme, pass the appropriate argument pair, e.g.: 
  
  ```
- data.write_NIRS(filename, 'sd_style', 'flat');
+ data.write_NIRS(nirs_filename, 'sd_style', 'flat');
 ```
 
 *Note: The channel list in a NIRS file is re-indexed such that it is sorted by (wavelength, source index, detector index), as this is assumed in some analysis software.*
