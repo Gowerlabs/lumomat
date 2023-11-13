@@ -1,5 +1,18 @@
 # lumomat
 
+## v1.7.0
+ - provide optional explicit time vector in SNIRF output
+
+## v1.6.0
+ - fix loading of saturation flags from LUMO file
+
+## v1.5.1
+  - filter non printable ASCII event marker characters on LUFR read
+
+## v1.5.0
+ - SNIRF output version validated against v1.1 specification
+ - anatomical landmarks exported in NIRS SD3D output
+
 ## v1.4.1
   - do not use the memory command on platforms upon which it is not supported
   - update documentation on MPU data output ordering, extended metadata

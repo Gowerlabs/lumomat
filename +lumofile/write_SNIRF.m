@@ -53,7 +53,7 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 % See also LUMO_READ
 %
 %
-%   (C) Gowerlabs Ltd., 2022
+%   (C) Gowerlabs Ltd., 2023
 %
 
 %%% TODO
@@ -69,8 +69,11 @@ snirffn = convertStringsToChars(snirffn);
 p = inputParser;
 expected_styles_meta = {'standard', 'extended'};
 addOptional(p, 'meta', 'standard', @(x) any(validatestring(x, expected_styles_meta)));
+expected_styles_time = {'standard', 'explicit'};
+addOptional(p, 'time', 'standard', @(x) any(validatestring(x, expected_styles_time)));
 parse(p, varargin{:})
 meta_style = p.Results.meta;
+time_style = p.Results.time;
 
 
 ng = length(enum.groups);
@@ -111,6 +114,18 @@ for gidx = 1:ng
   
   % Build permutation for ordering
   chn_perm = [];
+
+  % Construct time vectors
+  if strcmp(time_style, 'explicit')
+    tt_chn = (0:((data(gidx).nframes)-1))*data(gidx).chn_dt;
+    tt_mpu = (0:((size(data(gidx).node_acc, 3))-1))*data(gidx).node_mpu_dt;
+  else
+    tt_chn = [0 data(gidx).chn_dt];                 
+    tt_mpu = [0 data(gidx).node_mpu_dt];
+  end
+
+
+
     
   % Create NIRS root
   % /nirs{i}
@@ -242,7 +257,7 @@ for gidx = 1:ng
   %
   nirs_data_group = create_group(nirs_group, 'data1');                                            % Note: single data block
   dt.dataTimeSeries = write_chn_dat_block(nirs_data_group, chn_perm, data(gidx).chn_dat); % Write data /nirs{i}/data1
-  dt.time = write_double(nirs_data_group, 'time', [0 data(gidx).chn_dt]);                 % Write /nirs{i}/time
+  dt.time = write_double(nirs_data_group, 'time', tt_chn);  % Write /nirs{i}/time
   dt.measurementList = write_measlist(nirs_data_group, chn_perm, gidx, enum, glch);       % Write measurementList 
   
   % Assign data block
@@ -296,7 +311,7 @@ for gidx = 1:ng
       if size(data(gidx).chn_sat, 2) > 1
           nirs_aux_sat = create_group(nirs_group, ['aux' num2str(auxi)]); 
           snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_sat, 'name', 'saturationFlags');
-          snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_sat, 'time', [0 data(gidx).chn_dt]);
+          snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_sat, 'time', tt_chn);
           snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single_compressed(nirs_aux_sat, 'dataTimeSeries', data(gidx).chn_sat.');
           H5G.close(nirs_aux_sat);
           auxi = auxi+1;
@@ -307,7 +322,7 @@ for gidx = 1:ng
   if isfield(data(gidx), 'node_temp')
       nirs_aux_temp = create_group(nirs_group, ['aux' num2str(auxi)]); 
       snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_temp, 'name', 'temperature');
-      snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_temp, 'time', [0 data(gidx).chn_dt]);
+      snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_temp, 'time', tt_chn);
       snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_temp, 'dataTimeSeries',  data(gidx).node_temp.');
       H5G.close(nirs_aux_temp);
       auxi = auxi+1;    
@@ -319,42 +334,42 @@ for gidx = 1:ng
     
     nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
     snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'accel_x');
-    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', tt_mpu);
     snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_acc(:,1,:)).');
     H5G.close(nirs_aux_mpu);
     auxi = auxi+1;    
     
     nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
     snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'accel_y');
-    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', tt_mpu);
     snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_acc(:,2,:)).');
     H5G.close(nirs_aux_mpu);
     auxi = auxi+1;
     
     nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
     snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'accel_z');
-    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', tt_mpu);
     snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_acc(:,3,:)).');
     H5G.close(nirs_aux_mpu);
     auxi = auxi+1;
 
     nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
     snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'gyro_x');
-    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', tt_mpu);
     snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_gyr(:,1,:)).');
     H5G.close(nirs_aux_mpu);
     auxi = auxi+1;    
     
     nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
     snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'gyro_y');
-    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', tt_mpu);
     snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_gyr(:,2,:)).');
     H5G.close(nirs_aux_mpu);
     auxi = auxi+1;
     
     nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
     snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'gyro_z');
-    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', [0 data(gidx).node_mpu_dt]);
+    snirf.nirs(gidx).aux(auxi).time = write_double(nirs_aux_mpu, 'time', tt_mpu);
     snirf.nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_mpu, 'dataTimeSeries',  squeeze(data(gidx).node_gyr(:,3,:)).');
     H5G.close(nirs_aux_mpu);
     auxi = auxi+1;
