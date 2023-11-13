@@ -317,13 +317,13 @@ ans =
          nframes: 1503
            nchns: 24
        node_temp: [1×1503 single]
-     node_mpu_dt: 0.0100
+     node_mpu_dt: 10
     node_mpu_fps: 100
         node_acc: [1×3×12024 double]
         node_gyr: [1×3×12024 double]
 ```
 
-When present, the accelerometer and gyroscope data has dimensions of `<no. tiles x 3 x no. time>` where the second dimension is indexed over the x, y, and z-axes. The time vector for such motion data can be computed using the `node_mpu_dt` field.
+When present, the accelerometer and gyroscope data has dimensions of `<no. tiles x 3 x no. time>` where the second dimension is indexed over the x, y, and z-axes. The time vector for such motion data can be computed using the `node_mpu_dt` field, which is specified in ms.
 
 ## SNIRF output
 
