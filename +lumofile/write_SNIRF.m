@@ -53,7 +53,7 @@ function [snirf] = write_SNIRF(snirffn, enum, data, events, varargin)
 % See also LUMO_READ
 %
 %
-%   (C) Gowerlabs Ltd., 2022
+%   (C) Gowerlabs Ltd., 2023
 %
 
 %%% TODO
@@ -69,8 +69,11 @@ snirffn = convertStringsToChars(snirffn);
 p = inputParser;
 expected_styles_meta = {'standard', 'extended'};
 addOptional(p, 'meta', 'standard', @(x) any(validatestring(x, expected_styles_meta)));
+expected_styles_time = {'standard', 'explicit'};
+addOptional(p, 'time', 'standard', @(x) any(validatestring(x, expected_styles_time)));
 parse(p, varargin{:})
 meta_style = p.Results.meta;
+time_style = p.Results.time;
 
 
 ng = length(enum.groups);
@@ -242,7 +245,14 @@ for gidx = 1:ng
   %
   nirs_data_group = create_group(nirs_group, 'data1');                                            % Note: single data block
   dt.dataTimeSeries = write_chn_dat_block(nirs_data_group, chn_perm, data(gidx).chn_dat); % Write data /nirs{i}/data1
-  dt.time = write_double(nirs_data_group, 'time', [0 data(gidx).chn_dt]);                 % Write /nirs{i}/time
+  
+  % Write /nirs{i}/time
+  if strcmp(time_style, 'explicit')
+    dt.time = write_double(nirs_data_group, 'time', (0:((data(gidx).nframes)-1))*data(gidx).chn_dt);
+  else
+    dt.time = write_double(nirs_data_group, 'time', [0 data(gidx).chn_dt]);                 
+  end
+
   dt.measurementList = write_measlist(nirs_data_group, chn_perm, gidx, enum, glch);       % Write measurementList 
   
   % Assign data block

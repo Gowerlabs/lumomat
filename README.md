@@ -453,11 +453,15 @@ Each auxiliary measurement is located in an individual `/nirs(i)/aux(j)` field. 
   
 *All auxiliary fields are optional and only recorded by more recent software versions of LUMO. To update your software in order to capture this data, contact Gowerlabs.*
 
-
 ### Notes
 
  - When a layout field contains physiological landmarks, these will be stored in the appropriate `landmarkLabels` and `landmarkPos3D` datasets, but `landmarkPos2D` is optional and may not be present.
 
+### Package support
+ - [Homer3](https://github.com/BUNPC/Homer3) is [not compliant](https://github.com/BUNPC/Homer3/issues/180) with the SNIRF specification and will fail to load files using the abbreviated time vector format. To circumvent this bug, export an explicit time vector using the options:
+  ```
+  snirf = data.write_SNIRF(snirf_filename, 'time', 'explicit');
+  ```
 
 ## NIRS output
 
