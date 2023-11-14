@@ -310,20 +310,20 @@ ans =
   struct with fields:
 
          chn_dat: [24×1503 single]
-          chn_dt: 80
+          chn_dt: 0.08
          chn_fps: 12.5000
          chn_sat: [24×1503 logical]
          err_cnt: [1503×1 double]
          nframes: 1503
            nchns: 24
        node_temp: [1×1503 single]
-     node_mpu_dt: 10
+     node_mpu_dt: 0.01
     node_mpu_fps: 100
         node_acc: [1×3×12024 double]
         node_gyr: [1×3×12024 double]
 ```
 
-When present, the accelerometer and gyroscope data has dimensions of `<no. tiles x 3 x no. time>` where the second dimension is indexed over the x, y, and z-axes. The time vector for such motion data can be computed using the `node_mpu_dt` field, which is specified in ms.
+When present, the accelerometer and gyroscope data has dimensions of `<no. tiles x 3 x no. time>` where the second dimension is indexed over the x, y, and z-axes. The time vector for such motion data can be computed using the `node_mpu_dt` field, which is specified in seconds.
 
 ## SNIRF output
 
@@ -369,7 +369,7 @@ ans =
      MeasurementDate: 'unknown'
      MeasurementTime: 'unknown'
           LengthUnit: 'mm'
-            TimeUnit: 'ms'
+            TimeUnit: 's'
        FrequencyUnit: 'Hz'
      sourcePowerUnit: 'percent'
     ManufacturerName: 'Gowerlabs'
@@ -755,12 +755,12 @@ data =
 
     chn_dat: [3456×978 single]
     chn_fps: 10
-     chn_dt: 100
+     chn_dt: 0.1
     nframes: 978
       nchns: 3456
 ```
 
-The `chn_dat` field contains the raw data in an array of single precision numbers, collected at a rate of `chn_fps = 1/(chn_dt/1000)` frames per second. 
+The `chn_dat` field contains the raw data in an array of single precision numbers, collected at a rate of `chn_fps = 1/(chn_dt)` frames per second. 
 
 Additional fields such as channel saturation flags, accelerometry, and gyro data may be available depending upon the software and firmware versions of your system. Contact Gowerlabs to update your system.
 
