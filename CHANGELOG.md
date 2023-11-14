@@ -1,5 +1,8 @@
 # lumomat
 
+## v1.8.0
+ - default temporal units to seconds for improved compatibility
+
 ## v1.7.0
  - provide optional explicit time vector in SNIRF output
 
