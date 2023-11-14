@@ -415,7 +415,7 @@ classdef LumoData
       gidx = 1;
       
       % Return data
-      t = (0:(obj.data(gidx).nframes - 1))*obj.data(gidx).chn_dt*1e-3;
+      t = (0:(obj.data(gidx).nframes - 1))*obj.data(gidx).chn_dt;
       
     end
          

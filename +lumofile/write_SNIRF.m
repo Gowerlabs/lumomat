@@ -146,7 +146,7 @@ for gidx = 1:ng
   mdt.MeasurementDate = write_var_string(nirs_meta_group, 'MeasurementDate', 'unknown');
   mdt.MeasurementTime = write_var_string(nirs_meta_group, 'MeasurementTime', 'unknown');
   mdt.LengthUnit = write_var_string(nirs_meta_group, 'LengthUnit', 'mm');
-  mdt.TimeUnit = write_var_string(nirs_meta_group, 'TimeUnit', 'ms');
+  mdt.TimeUnit = write_var_string(nirs_meta_group, 'TimeUnit', 's');
   mdt.FrequencyUnit = write_var_string(nirs_meta_group, 'FrequencyUnit', 'Hz');
   
   % Optional fields
