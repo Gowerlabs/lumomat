@@ -235,7 +235,7 @@ SD.MeasList(:,2) = glch(:,3);           % Global detector index
 SD.MeasList(:,3) = 1;                   % Always one
 SD.MeasList(:,4) = glch(:,2);           % Global wavelength index
 
-% Build event (stimulus) maitrx
+% Build event (stimulus) matrix
 %
 % LUMO records characters and strings as event markers, which differs from the way that
 % stimuli are encoded in NIRS. There is no unambiguous mapping so we implement the approach
@@ -277,6 +277,7 @@ if ~isempty(events)
   
 else
   
+    
   % No events recorded
   s = zeros([size(t, 1) 1]); % Add empty stimulus matrix for compatibility with Homer2
   CondNames = {'empty'}; % Add value to CondNames for compatibility with Homer2
@@ -308,30 +309,6 @@ if strcmp(sdstyle,'flat')
   SD3D.SrcPowers = SD.SrcPowers;
 end
 
-  
-for gidx = 1:ng
-    
-    auxi = 1;
-    if isfield(data(gidx), 'node_temp')
-      nirs_aux_temp = create_group(nirs_group, ['aux' num2str(auxi)]); 
-      nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_temp, 'name', 'temperature');
-      nirs(gidx).aux(auxi).time = write_double(nirs_aux_temp, 'time', tt_chn);
-      nirs(gidx).aux(auxi).dataTimeSeries = write_single(nirs_aux_temp, 'dataTimeSeries',  data(gidx).node_temp.');
-      auxi = auxi+1;    
-    end
-
-end
-
-
-%%
-
-
-
-
-
-
-
-
 % A duplicate entry is specified for unknown reasons
 ml = SD.MeasList;
 
@@ -341,7 +318,7 @@ nirs.d = d;
 nirs.SD = SD;
 nirs.ml = ml;
 % Add empty auxiliary matrix for compatibility with Homer2
-nirs.aux = zeros(size(nirs.t, 1));
+nirs.aux = zeros([size(nirs.t, 1) 1]);
 nirs.s = s;
 nirs.CondNames = CondNames;
 
