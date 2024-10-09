@@ -276,12 +276,10 @@ if ~isempty(events)
   end
   
 else
-  
     
   % No events recorded
-  s = zeros([size(t, 1) 1]); % Add empty stimulus matrix for compatibility with Homer2
-  CondNames = {'empty'}; % Add value to CondNames for compatibility with Homer2
-  
+  s = zeros([size(t, 1) 1]); % Add a zeros stimulus matrix for compatibility with Homer2
+  CondNames = {'empty'}; % Add element to the cell for compatibility with Homer2
 end
 
 % Sort measurement list and data by (wavelength, source, detector) and apply to data,
@@ -317,10 +315,9 @@ nirs.t = t;
 nirs.d = d;
 nirs.SD = SD;
 nirs.ml = ml;
-% Add empty auxiliary matrix for compatibility with Homer2
-nirs.aux = zeros([size(nirs.t, 1) 1]);
 nirs.s = s;
 nirs.CondNames = CondNames;
+nirs.aux = zeros([size(nirs.t, 1) 1]); % Add a zeros auxiliary matrix for compatibility with Homer2
 
 if strcmp(sdstyle, 'flat')
   nirs.SD3D = SD3D;
