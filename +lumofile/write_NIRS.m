@@ -278,8 +278,11 @@ if ~isempty(events)
 else
     
   % No events recorded
-  s = zeros(size(t, 1), 1); % Add a zeros stimulus matrix for compatibility with Homer2
-  CondNames = {' '}; % Add element to the cell for compatibility with Homer2
+  % Homer2 requires the stimulus field ('s') to be the same size as the time vector ('t')
+  % to load NIRS data
+  s = zeros(size(t, 1), 1);
+  % Length of CondNames must be equal to the number of columns in 's'
+  CondNames = {' '}; 
 end
 
 % Sort measurement list and data by (wavelength, source, detector) and apply to data,
@@ -317,7 +320,8 @@ nirs.SD = SD;
 nirs.ml = ml;
 nirs.s = s;
 nirs.CondNames = CondNames;
-nirs.aux = zeros(size(nirs.t, 1), 1); % Add a zeros auxiliary matrix for compatibility with Homer2
+% Homer2 requires an auxiliary field to be the same size as 't' to load NIRS data
+nirs.aux = zeros(size(nirs.t, 1), 1); 
 
 if strcmp(sdstyle, 'flat')
   nirs.SD3D = SD3D;
