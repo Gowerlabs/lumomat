@@ -278,7 +278,7 @@ if ~isempty(events)
 else
     
   % No events recorded
-  s = zeros([size(t, 1) 1]); % Add a zeros stimulus matrix for compatibility with Homer2
+  s = zeros(size(t, 1), 1); % Add a zeros stimulus matrix for compatibility with Homer2
   CondNames = {'empty'}; % Add element to the cell for compatibility with Homer2
 end
 
@@ -317,7 +317,7 @@ nirs.SD = SD;
 nirs.ml = ml;
 nirs.s = s;
 nirs.CondNames = CondNames;
-nirs.aux = zeros([size(nirs.t, 1) 1]); % Add a zeros auxiliary matrix for compatibility with Homer2
+nirs.aux = zeros(size(nirs.t, 1), 1); % Add a zeros auxiliary matrix for compatibility with Homer2
 
 if strcmp(sdstyle, 'flat')
   nirs.SD3D = SD3D;
