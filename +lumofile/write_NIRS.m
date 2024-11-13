@@ -279,7 +279,7 @@ else
     
   % No events recorded
   s = zeros(size(t, 1), 1); % Add a zeros stimulus matrix for compatibility with Homer2
-  CondNames = {'empty'}; % Add element to the cell for compatibility with Homer2
+  CondNames = {' '}; % Add element to the cell for compatibility with Homer2
 end
 
 % Sort measurement list and data by (wavelength, source, detector) and apply to data,
