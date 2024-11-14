@@ -278,10 +278,11 @@ if ~isempty(events)
 else
     
   % No events recorded
-  % Homer2 requires the stimulus field ('s') to be the same size as the time vector ('t')
+  % Homer2 requires the stimulus field 's' to be the same size as the time vector 't'
   % to load NIRS data
   s = zeros(size(t, 1), 1);
-  % Length of CondNames must be equal to the number of columns in 's'
+  % CondNames must have an assigned value. The length of CondNames must be 
+  % equal to the number of columns in 's'
   CondNames = {' '}; 
 end
 
