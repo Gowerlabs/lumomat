@@ -281,7 +281,7 @@ else
   %
   % Homer2 requires the stimulus field ('s') to match the size of the time vector ('t') 
   % to successfully load NIRS data. Additionally, the field 'CondNames' must be assigned 
-  % a value, and its length must match the number of columns in 's'.
+  % a value, and the length of 'CondNames' must match the number of columns in 's'.
   %
   s = zeros(size(t, 1), 1);
   CondNames = {' '}; 
