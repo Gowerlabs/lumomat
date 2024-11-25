@@ -1,5 +1,8 @@
 # lumomat
 
+## v1.9.0
+ - make NIRS output Homer2 compatible when no event markers present
+
 ## v1.8.0
  - default temporal units to seconds for improved compatibility
 
