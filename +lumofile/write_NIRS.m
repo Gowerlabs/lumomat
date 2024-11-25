@@ -235,7 +235,7 @@ SD.MeasList(:,2) = glch(:,3);           % Global detector index
 SD.MeasList(:,3) = 1;                   % Always one
 SD.MeasList(:,4) = glch(:,2);           % Global wavelength index
 
-% Build event (stimulus) maitrx
+% Build event (stimulus) matrix
 %
 % LUMO records characters and strings as event markers, which differs from the way that
 % stimuli are encoded in NIRS. There is no unambiguous mapping so we implement the approach
@@ -276,12 +276,15 @@ if ~isempty(events)
   end
   
 else
-  
-  
+
   % No events recorded
-  s = [];
-  CondNames = {};
-  
+  %
+  % Homer2 requires the stimulus field ('s') to match the size of the time vector ('t') 
+  % to successfully load NIRS data. Additionally, the field 'CondNames' must be assigned 
+  % a value, and the length of 'CondNames' must match the number of columns in 's'.
+  %
+  s = zeros(size(t, 1), 1);
+  CondNames = {' '}; 
 end
 
 % Sort measurement list and data by (wavelength, source, detector) and apply to data,
@@ -319,6 +322,8 @@ nirs.SD = SD;
 nirs.ml = ml;
 nirs.s = s;
 nirs.CondNames = CondNames;
+% Homer2 requires an auxiliary field to be the same size as 't' to load NIRS data
+nirs.aux = zeros(size(nirs.t, 1), 1); 
 
 if strcmp(sdstyle, 'flat')
   nirs.SD3D = SD3D;
