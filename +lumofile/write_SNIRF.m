@@ -118,10 +118,8 @@ for gidx = 1:ng
   % Construct time vectors
   if strcmp(time_style, 'explicit')
     tt_chn = (0:((data(gidx).nframes)-1))*data(gidx).chn_dt;
-    tt_mpu = (0:((size(data(gidx).node_acc, 3))-1))*data(gidx).node_mpu_dt;
   else
     tt_chn = [0 data(gidx).chn_dt];                 
-    tt_mpu = [0 data(gidx).node_mpu_dt];
   end
 
 
@@ -331,6 +329,12 @@ for gidx = 1:ng
   
   % MPU data
   if isfield(data(gidx), 'node_acc') && isfield(data(gidx), 'node_gyr')
+      
+    if strcmp(time_style, 'explicit')
+        tt_mpu = (0:((size(data(gidx).node_acc, 3))-1))*data(gidx).node_mpu_dt;
+    else                 
+        tt_mpu = [0 data(gidx).node_mpu_dt];
+    end
     
     nirs_aux_mpu = create_group(nirs_group, ['aux' num2str(auxi)]); 
     snirf.nirs(gidx).aux(auxi).name = write_var_string(nirs_aux_mpu, 'name', 'accel_x');
