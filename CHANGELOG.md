@@ -1,5 +1,9 @@
 # lumomat
 
+## v1.10.0
+ - guard creation of MPU data output structures on .LUMO input files
+ - fix temporal vector generation on .LUMO input files
+
 ## v1.9.0
  - make NIRS output Homer2 compatible when no event markers present
 
