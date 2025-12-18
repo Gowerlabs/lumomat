@@ -277,6 +277,14 @@ for gidx = 1:ng
     [markers, ~, marker_perm] = unique({events.mark});
     nm = length(markers);
     
+    % The timestamps in lumoview are in millisecond. Convert to second. 
+    % Tiles used with lumoview do not have acc and gyr data. 
+    if ~isfield(data, 'node_gyr')
+        for i = 1:numel(events)
+            events(i).timestamp = events(i).timestamp / 1000;
+        end
+    end
+    
     for i = 1:nm
       
       % Create stimulus group

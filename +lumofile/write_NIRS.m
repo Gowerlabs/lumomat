@@ -265,6 +265,12 @@ if ~isempty(events)
   % Extract condition names
   CondNames = unique(eventStr,'stable');
   nc = size(CondNames,2);
+
+  % The timestamps in lumoview are in millisecond. Convert to second. 
+  % Tiles used with lumoview do not have acc and gyr data. 
+  if ~isfield(data, 'node_gyr')
+    timeStamp = timeStamp / 1000; 
+  end
   
   s = zeros(size(t,1), nc);
   
