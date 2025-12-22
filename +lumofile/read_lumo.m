@@ -353,7 +353,8 @@ else
         ts = lf_events{ii}.Timestamp;
       end
 
-      % Note that timestamps are in seconds
+      % Note that timestamps are in milliseconds. Convert to seconds. 
+      ts = ts/1000;
       events(ii) = struct('mark', lf_events{ii}.name, 'timestamp', ts);
       
     end
