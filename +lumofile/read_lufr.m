@@ -436,6 +436,7 @@ if(apply_filter)
      
     % Over every entry in the keep list
     k = 1;
+    unmatched_ch_count = 0;
     for i = 1:size(chfilter,1)
                 
         src_node_match = lin_src_node_id == chfilter(i,1);
@@ -446,16 +447,28 @@ if(apply_filter)
         ch_match = find(src_node_match & det_node_match & src_opt_match & det_opt_match);
         n_ch_match = length(ch_match);
         
-        chperm(k:(k+n_ch_match-1)) = ch_match;
-        k = k+n_ch_match;
-       
-    end
-    
+        if n_ch_match == 0
+            % Count unmatched channels
+            unmatched_ch_count = unmatched_ch_count + 2; % count twice 
+            % Account for 2 unmatched channels in chperm
+            chperm(k:(k+2-1)) = zeros(2, 1); 
+            k = k+2;
+        else
+            chperm(k:(k+n_ch_match-1)) = ch_match;
+            k = k+n_ch_match;
+        end
 
+    end
     
     if(any(chperm == 0))
-        error('Some entries in the channel keep filter could not be matched');
+        warning(['Some entries in the channel filtering matrix could not be ' ...
+            'matched to those in the LUFR file. This is normal (e.g. not ' ...
+            'all long channels are recorded by LUMO) and they have been' ...
+            'safely skipped.']);
     end
+
+    % Remove all zero elements (unmatched channels) from the array
+    chperm(chperm == 0) = [];
     
     n_schans_keep = length(chperm);
     fprintf('LUFR file channel filtering complete, found %d channels\n', n_schans_keep);
@@ -482,7 +495,7 @@ fps = 1/(sizeparam_ref(2)*1e-6);
 fprintf('LUFR file channel frame rate is %.2f fps\n', fps);
 
 if(apply_filter)
-    chdat = zeros(n_schans_keep, n_frames, 'single');   % Channel data
+    chdat = zeros(n_schans_keep, n_frames, 'single');  % Channel data
 else
     chdat = zeros(n_schans, n_frames, 'single');        % Channel data
 end
@@ -534,6 +547,7 @@ for i = 1:length(rclength)
             chdat(:,i_fr) = chdat_temp(chperm);
         else
             chdat(:,i_fr) = fread(fid, n_schans, 'single=>single');
+            
         end
         
         dkdat(:,i_fr) = fread(fid, n_dchans, 'single=>single');
